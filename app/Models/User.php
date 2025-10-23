@@ -2,80 +2,117 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
-class User extends Authenticatable
+class User
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
-
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Validar datos de usuario
      */
-    protected $fillable = [
-        'nombre',
-        'apellido',
-        'telefono',
-        'fecha_nacimiento',
-        'direccion',
-        'estado',
-    ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'fecha_nacimiento' => 'date',
-        'password' => 'hashed',
-    ];
-
-    /**
-     * Relación con Propietario
-     */
-    public function propietario()
+    public static function validar(array $datos)
     {
-        return $this->hasOne(Propietario::class);
+        return Validator::make($datos, [
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'telefono' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+            'direccion' => 'nullable|string',
+            'estado' => 'nullable|in:activo,inactivo,suspendido',
+        ]);
     }
 
     /**
-     * Relación con Tutor
+     * Crear usuario en la base de datos
      */
-    public function tutor()
+    public static function crear(array $datos)
     {
-        return $this->hasOne(Tutor::class);
+        return DB::table('user')->insertGetId([
+            'nombre' => $datos['nombre'],
+            'apellido' => $datos['apellido'],
+            'telefono' => $datos['telefono'] ?? null,
+            'fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+            'direccion' => $datos['direccion'] ?? null,
+            'estado' => $datos['estado'] ?? 'activo',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**
-     * Relación con Alumno
+     * Actualizar usuario
      */
-    public function alumno()
+    public static function actualizar($id, array $datos)
     {
-        return $this->hasOne(Alumno::class);
+        $datosUpdate = [];
+        
+        if (isset($datos['nombre'])) $datosUpdate['nombre'] = $datos['nombre'];
+        if (isset($datos['apellido'])) $datosUpdate['apellido'] = $datos['apellido'];
+        if (isset($datos['telefono'])) $datosUpdate['telefono'] = $datos['telefono'];
+        if (isset($datos['fecha_nacimiento'])) $datosUpdate['fecha_nacimiento'] = $datos['fecha_nacimiento'];
+        if (isset($datos['direccion'])) $datosUpdate['direccion'] = $datos['direccion'];
+        if (isset($datos['estado'])) $datosUpdate['estado'] = $datos['estado'];
+
+        if (!empty($datosUpdate)) {
+            $datosUpdate['updated_at'] = now();
+            return DB::table('user')->where('id', $id)->update($datosUpdate);
+        }
+
+        return 0;
     }
 
     /**
-     * Obtener el nombre completo del usuario
+     * Eliminar usuario
      */
-    public function getNombreCompletoAttribute()
+    public static function eliminar($id)
     {
-        return "{$this->nombre} {$this->apellido}";
+        return DB::table('user')->where('id', $id)->delete();
     }
 
-    public function isActivo()
+    /**
+     * Obtener usuario por ID
+     */
+    public static function obtenerPorId($id)
     {
-        return $this->estado === 'activo';
+        return DB::table('user')->where('id', $id)->first();
+    }
+
+    /**
+     * Verificar si un usuario está activo
+     */
+    public static function estaActivo($id)
+    {
+        $user = self::obtenerPorId($id);
+        return $user && $user->estado === 'activo';
+    }
+
+    /**
+     * Cambiar estado de usuario
+     */
+    public static function cambiarEstado($id, $nuevoEstado)
+    {
+        $estados = ['activo', 'inactivo', 'suspendido'];
+        
+        if (!in_array($nuevoEstado, $estados)) {
+            throw new \Exception('Estado inválido');
+        }
+
+        return DB::table('user')->where('id', $id)->update([
+            'estado' => $nuevoEstado,
+            'updated_at' => now()
+        ]);
+    }
+
+    /**
+     * Obtener nombre completo
+     */
+    public static function obtenerNombreCompleto($user)
+    {
+        if (is_object($user)) {
+            return $user->nombre . ' ' . $user->apellido;
+        }
+        
+        $userData = self::obtenerPorId($user);
+        return $userData ? $userData->nombre . ' ' . $userData->apellido : '';
     }
 }
