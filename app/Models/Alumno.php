@@ -23,13 +23,11 @@ class Alumno
      */
     public static function crearConUsuario(array $datosUsuario, array $datosAlumno)
     {
-        // Validar datos de usuario
         $validatorUser = User::validar($datosUsuario);
         if ($validatorUser->fails()) {
             throw new \Exception('Error en datos de usuario: ' . $validatorUser->errors()->first());
         }
 
-        // Validar datos de alumno
         $validatorAlumno = self::validar($datosAlumno);
         if ($validatorAlumno->fails()) {
             throw new \Exception('Error en datos de alumno: ' . $validatorAlumno->errors()->first());
@@ -37,10 +35,8 @@ class Alumno
 
         DB::beginTransaction();
         try {
-            // Crear usuario
             $userId = User::crear($datosUsuario);
 
-            // Crear alumno
             $alumnoId = DB::table('alumno')->insertGetId([
                 'user_id' => $userId,
                 'grado_escolar' => $datosAlumno['grado_escolar'] ?? null,
@@ -72,12 +68,10 @@ class Alumno
 
         DB::beginTransaction();
         try {
-            // Actualizar usuario si hay datos
             if (!empty($datosUsuario)) {
                 User::actualizar($alumno->user_id, $datosUsuario);
             }
 
-            // Actualizar alumno si hay datos
             if (!empty($datosAlumno)) {
                 $datosUpdate = [];
                 
@@ -134,16 +128,16 @@ class Alumno
     public static function obtenerPorId($id)
     {
         return DB::table('alumno')
-            ->join('user', 'alumno.user_id', '=', 'user.id')
+            ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
             ->where('alumno.id', $id)
             ->select(
                 'alumno.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.fecha_nacimiento',
-                'user.direccion',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
             )
             ->first();
     }
@@ -163,22 +157,22 @@ class Alumno
     public static function listar($filtros = [])
     {
         $query = DB::table('alumno')
-            ->join('user', 'alumno.user_id', '=', 'user.id')
+            ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
             ->select(
                 'alumno.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.fecha_nacimiento',
-                'user.direccion',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
             );
 
         if (isset($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function($q) use ($search) {
-                $q->where('user.nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('user.apellido', 'ILIKE', "%{$search}%");
+                $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
+                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%");
             });
         }
 
@@ -187,7 +181,7 @@ class Alumno
         }
 
         if (isset($filtros['estado'])) {
-            $query->where('user.estado', $filtros['estado']);
+            $query->where('usuario.estado', $filtros['estado']);
         }
 
         return $query->get();

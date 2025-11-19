@@ -5,9 +5,26 @@ namespace App\Models;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Propietario
+class Propietario extends Authenticatable
 {
+    use HasApiTokens;
+
+    protected $table = 'propietario';
+
+    protected $fillable = [
+        'user_id',
+        'email',
+        'password',
+        'rol',
+    ];
+
+    protected $hidden = [
+        'password',
+    ];
+
     /**
      * Validar datos de propietario
      */
@@ -178,7 +195,6 @@ class Propietario
         return $propietario;
     }
 
-
     public static function listar($filtros = [])
     {
         $query = DB::table('propietario')
@@ -206,5 +222,21 @@ class Propietario
         }
 
         return $query->get();
+    }
+
+    /**
+     * Para Sanctum: obtener el nombre de la columna de password
+     */
+    public function getAuthPassword()
+    {
+        return $this->password;
+    }
+
+    /**
+     * Crear token de API
+     */
+    public function createToken($name)
+    {
+        return $this->createToken($name);
     }
 }

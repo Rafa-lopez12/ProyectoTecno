@@ -7,11 +7,20 @@ use Illuminate\Support\Facades\DB;
 class Tutor
 {
     /**
+     * Validar datos de tutor
+     */
+    public static function validar(array $datos)
+    {
+        return \Illuminate\Support\Facades\Validator::make($datos, [
+            'rol' => 'nullable|in:tutor_basico,tutor_premium',
+        ]);
+    }
+
+    /**
      * Crear tutor con su usuario
      */
-    public static function crearConUsuario(array $datosUsuario)
+    public static function crearConUsuario(array $datosUsuario, array $datosTutor = [])
     {
-        // Validar datos de usuario
         $validatorUser = User::validar($datosUsuario);
         if ($validatorUser->fails()) {
             throw new \Exception('Error en datos de usuario: ' . $validatorUser->errors()->first());
@@ -19,12 +28,11 @@ class Tutor
 
         DB::beginTransaction();
         try {
-            // Crear usuario
             $userId = User::crear($datosUsuario);
 
-            // Crear tutor
             $tutorId = DB::table('tutor')->insertGetId([
                 'user_id' => $userId,
+                'rol' => $datosTutor['rol'] ?? 'tutor_basico',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -42,7 +50,7 @@ class Tutor
     /**
      * Actualizar tutor y su usuario
      */
-    public static function actualizarConUsuario($id, array $datosUsuario = [])
+    public static function actualizarConUsuario($id, array $datosUsuario = [], array $datosTutor = [])
     {
         $tutor = self::obtenerPorIdSimple($id);
         
@@ -52,15 +60,22 @@ class Tutor
 
         DB::beginTransaction();
         try {
-            // Actualizar usuario si hay datos
             if (!empty($datosUsuario)) {
                 User::actualizar($tutor->user_id, $datosUsuario);
             }
 
-            // Actualizar tutor (timestamp)
-            DB::table('tutor')
-                ->where('id', $id)
-                ->update(['updated_at' => now()]);
+            if (!empty($datosTutor)) {
+                $datosUpdate = [];
+                
+                if (isset($datosTutor['rol'])) {
+                    $datosUpdate['rol'] = $datosTutor['rol'];
+                }
+
+                if (!empty($datosUpdate)) {
+                    $datosUpdate['updated_at'] = now();
+                    DB::table('tutor')->where('id', $id)->update($datosUpdate);
+                }
+            }
 
             DB::commit();
 
@@ -105,16 +120,16 @@ class Tutor
     public static function obtenerPorId($id)
     {
         return DB::table('tutor')
-            ->join('user', 'tutor.user_id', '=', 'user.id')
+            ->join('usuario', 'tutor.user_id', '=', 'usuario.id')
             ->where('tutor.id', $id)
             ->select(
                 'tutor.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.fecha_nacimiento',
-                'user.direccion',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
             )
             ->first();
     }
@@ -133,28 +148,31 @@ class Tutor
     public static function listar($filtros = [])
     {
         $query = DB::table('tutor')
-            ->join('user', 'tutor.user_id', '=', 'user.id')
+            ->join('usuario', 'tutor.user_id', '=', 'usuario.id')
             ->select(
                 'tutor.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.fecha_nacimiento',
-                'user.direccion',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
             );
 
-        // Aplicar filtros
         if (isset($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function($q) use ($search) {
-                $q->where('user.nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('user.apellido', 'ILIKE', "%{$search}%");
+                $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
+                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%");
             });
         }
 
         if (isset($filtros['estado'])) {
-            $query->where('user.estado', $filtros['estado']);
+            $query->where('usuario.estado', $filtros['estado']);
+        }
+
+        if (isset($filtros['rol'])) {
+            $query->where('tutor.rol', $filtros['rol']);
         }
 
         return $query->get();
