@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('propietario', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('user')->onDelete('cascade');
+            $table->text('rol')->after('user_id');
             $table->string('email')->unique();
             $table->string('password');
             $table->timestamps();
