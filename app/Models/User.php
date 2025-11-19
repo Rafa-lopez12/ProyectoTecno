@@ -27,7 +27,7 @@ class User
      */
     public static function crear(array $datos)
     {
-        return DB::table('user')->insertGetId([
+        return DB::table('usuario')->insertGetId([
             'nombre' => $datos['nombre'],
             'apellido' => $datos['apellido'],
             'telefono' => $datos['telefono'] ?? null,
@@ -55,7 +55,7 @@ class User
 
         if (!empty($datosUpdate)) {
             $datosUpdate['updated_at'] = now();
-            return DB::table('user')->where('id', $id)->update($datosUpdate);
+            return DB::table('usuario')->where('id', $id)->update($datosUpdate);
         }
 
         return 0;
@@ -66,7 +66,7 @@ class User
      */
     public static function eliminar($id)
     {
-        return DB::table('user')->where('id', $id)->delete();
+        return DB::table('usuario')->where('id', $id)->delete();
     }
 
     /**
@@ -74,7 +74,7 @@ class User
      */
     public static function obtenerPorId($id)
     {
-        return DB::table('user')->where('id', $id)->first();
+        return DB::table('usuario')->where('id', $id)->first();
     }
 
     /**
@@ -97,7 +97,7 @@ class User
             throw new \Exception('Estado inválido');
         }
 
-        return DB::table('user')->where('id', $id)->update([
+        return DB::table('usuario')->where('id', $id)->update([
             'estado' => $nuevoEstado,
             'updated_at' => now()
         ]);

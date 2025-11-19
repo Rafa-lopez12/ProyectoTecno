@@ -17,30 +17,30 @@ class PropietarioController extends Controller
     {
         try {
             $query = DB::table('propietario')
-                ->join('user', 'propietario.user_id', '=', 'user.id')
+                ->join('usuario', 'propietario.user_id', '=', 'usuario.id')
                 ->select(
                     'propietario.*',
-                    'user.nombre',
-                    'user.apellido',
-                    'user.telefono',
-                    'user.fecha_nacimiento',
-                    'user.direccion',
-                    'user.estado'
+                    'usuario.nombre',
+                    'usuario.apellido',
+                    'usuario.telefono',
+                    'usuario.fecha_nacimiento',
+                    'usuario.direccion',
+                    'usuario.estado'
                 );
 
             // Filtro por búsqueda
             if ($request->has('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
-                    $q->where('user.nombre', 'ILIKE', "%{$search}%")
-                      ->orWhere('user.apellido', 'ILIKE', "%{$search}%")
+                    $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
+                      ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%")
                       ->orWhere('propietario.email', 'ILIKE', "%{$search}%");
                 });
             }
 
             // Filtro por estado
             if ($request->has('estado')) {
-                $query->where('user.estado', $request->estado);
+                $query->where('usuario.estado', $request->estado);
             }
 
             $propietarios = $query->get();

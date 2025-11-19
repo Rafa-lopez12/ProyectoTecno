@@ -19,21 +19,24 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
-
+    
         $propietario = Propietario::obtenerPorEmail($request->email);
-
+    
         if (!$propietario || !Hash::check($request->password, $propietario->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales son incorrectas.'],
             ]);
         }
-
-        // Obtener datos completos del propietario con usuario
-        $propietarioCompleto = Propietario::obtenerPorId($propietario->id);
-
+    
+        // Cargar modelo Eloquent para usar HasApiTokens
+        $propietarioModel = Propietario::find($propietario->id);
+        
         // Crear token
-        $token = $propietario->createToken('api-token')->plainTextToken;
-
+        $token = $propietarioModel->createToken('api-token')->plainTextToken;
+    
+        // Obtener datos completos
+        $propietarioCompleto = Propietario::obtenerPorId($propietario->id);
+    
         return response()->json([
             'message' => 'Login exitoso',
             'token' => $token,

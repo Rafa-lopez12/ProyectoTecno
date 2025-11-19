@@ -162,16 +162,16 @@ class Propietario extends Authenticatable
     public static function obtenerPorId($id)
     {
         return DB::table('propietario')
-            ->join('user', 'propietario.user_id', '=', 'user.id')
+            ->join('usuario', 'propietario.user_id', '=', 'usuario.id')
             ->where('propietario.id', $id)
             ->select(
                 'propietario.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.fecha_nacimiento',
-                'user.direccion',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
             )
             ->first();
     }
@@ -198,13 +198,13 @@ class Propietario extends Authenticatable
     public static function listar($filtros = [])
     {
         $query = DB::table('propietario')
-            ->join('user', 'propietario.user_id', '=', 'user.id')
+            ->join('usuario', 'propietario.user_id', '=', 'usuario.id')
             ->select(
                 'propietario.*',
-                'user.nombre',
-                'user.apellido',
-                'user.telefono',
-                'user.estado'
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.estado'
             );
 
         // Aplicar filtros
@@ -224,19 +224,5 @@ class Propietario extends Authenticatable
         return $query->get();
     }
 
-    /**
-     * Para Sanctum: obtener el nombre de la columna de password
-     */
-    public function getAuthPassword()
-    {
-        return $this->password;
-    }
 
-    /**
-     * Crear token de API
-     */
-    public function createToken($name)
-    {
-        return $this->createToken($name);
-    }
 }
