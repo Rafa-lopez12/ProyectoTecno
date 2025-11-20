@@ -136,31 +136,31 @@ export function useApi() {
     // ============================================
     const horarios = {
         getAll: (params = {}) => 
-            request('GET', '/v1/horarios', null, { params }),
+            request('GET', '/v1/horario', null, { params }),
         
         getById: (id) => 
-            request('GET', `/v1/horarios/${id}`),
+            request('GET', `/v1/horario/${id}`),
         
         create: (data) => 
-            request('POST', '/v1/horarios', data),
+            request('POST', '/v1/horario', data),
         
         update: (id, data) => 
-            request('PUT', `/v1/horarios/${id}`, data),
+            request('PUT', `/v1/horario/${id}`, data),
         
         delete: (id) => 
-            request('DELETE', `/v1/horarios/${id}`),
+            request('DELETE', `/v1/horario/${id}`),
         
         asignarTutor: (horarioId, tutorId) => 
-            request('POST', `/v1/horarios/${horarioId}/asignar-tutor`, { tutor_id: tutorId }),
+            request('POST', `/v1/horario/${horarioId}/asignar-tutor`, { tutor_id: tutorId }),
         
         desasignarTutor: (horarioId, tutorId) => 
-            request('POST', `/v1/horarios/${horarioId}/desasignar-tutor`, { tutor_id: tutorId }),
+            request('POST', `/v1/horario/${horarioId}/desasignar-tutor`, { tutor_id: tutorId }),
         
         getTutores: (horarioId) => 
-            request('GET', `/v1/horarios/${horarioId}/tutores`),
+            request('GET', `/v1/horario/${horarioId}/tutores`),
         
         getHorariosDeTutor: (tutorId) => 
-            request('GET', `/v1/tutores/${tutorId}/horarios`)
+            request('GET', `/v1/tutores/${tutorId}/horario`)
     };
 
     return {

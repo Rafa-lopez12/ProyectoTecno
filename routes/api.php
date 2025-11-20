@@ -36,10 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('propietarios', PropietarioController::class);
         
         // Horarios
-        Route::apiResource('horarios', HorarioController::class);
-        Route::post('horarios/{id}/asignar-tutor', [HorarioController::class, 'asignarTutor']);
-        Route::post('horarios/{id}/desasignar-tutor', [HorarioController::class, 'desasignarTutor']);
-        Route::get('horarios/{id}/tutores', [HorarioController::class, 'tutoresDeHorario']);
-        Route::get('tutores/{tutorId}/horarios', [HorarioController::class, 'horariosDeTutor']);
+        Route::apiResource('horario', HorarioController::class);
+        Route::post('horario/{id}/asignar-tutor', [HorarioController::class, 'asignarTutor']);
+        Route::post('horario/{id}/desasignar-tutor', [HorarioController::class, 'desasignarTutor']);
+        Route::get('horario/{id}/tutores', [HorarioController::class, 'tutoresDeHorario']);
+        Route::get('tutores/{tutorId}/horario', [HorarioController::class, 'horariosDeTutor']);
     });
 });
