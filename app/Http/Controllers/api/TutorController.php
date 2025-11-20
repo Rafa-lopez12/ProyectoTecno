@@ -39,12 +39,18 @@ class TutorController extends Controller
     public function store(Request $request)
     {
         try {
+            // Datos de usuario (tabla usuario)
             $datosUsuario = $request->only([
                 'nombre', 'apellido', 'telefono', 
                 'fecha_nacimiento', 'direccion', 'estado'
             ]);
 
-            $tutor = Tutor::crearConUsuario($datosUsuario);
+            // Datos de tutor (tabla tutor)
+            $datosTutor = $request->only([
+                'email', 'password', 'grado', 'rol'
+            ]);
+
+            $tutor = Tutor::crearConUsuario($datosUsuario, $datosTutor);
 
             return response()->json([
                 'message' => 'Tutor creado exitosamente',
@@ -91,12 +97,18 @@ class TutorController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            // Datos de usuario
             $datosUsuario = $request->only([
                 'nombre', 'apellido', 'telefono', 
                 'fecha_nacimiento', 'direccion', 'estado'
             ]);
 
-            $tutor = Tutor::actualizarConUsuario($id, $datosUsuario);
+            // Datos de tutor
+            $datosTutor = $request->only([
+                'email', 'password', 'grado', 'rol'
+            ]);
+
+            $tutor = Tutor::actualizarConUsuario($id, $datosUsuario, $datosTutor);
 
             return response()->json([
                 'message' => 'Tutor actualizado exitosamente',

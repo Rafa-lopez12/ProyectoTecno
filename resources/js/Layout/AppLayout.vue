@@ -41,18 +41,32 @@ const handleLogout = async () => {
                                 Dashboard
                             </Link>
                             <Link 
-                                :href="route('alumnos.index')" 
+                                :href="route('usuarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/alumnos') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/usuarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             >
-                                Alumnos
+                                Usuarios
                             </Link>
                             <Link 
-                                :href="route('tutores.index')" 
+                                :href="route('inscripciones.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/tutores') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/inscripciones') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             >
-                                Tutores
+                                Inscripciones
+                            </Link>
+                            <Link 
+                                :href="route('asistencias.index')" 
+                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
+                                :class="$page.url.startsWith('/asistencias') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            >
+                                Asistencias
+                            </Link>
+                            <Link 
+                                :href="route('ventas.index')" 
+                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
+                                :class="$page.url.startsWith('/ventas') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            >
+                                Ventas
                             </Link>
                             <Link 
                                 :href="route('propietarios.index')" 
@@ -102,18 +116,32 @@ const handleLogout = async () => {
                             Dashboard
                         </Link>
                         <Link 
-                            :href="route('alumnos.index')" 
+                            :href="route('usuarios.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/alumnos') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/usuarios') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
                         >
-                            Alumnos
+                            Usuarios
                         </Link>
                         <Link 
-                            :href="route('tutores.index')" 
+                            :href="route('inscripciones.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/tutores') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/inscripciones') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
                         >
-                            Tutores
+                            Inscripciones
+                        </Link>
+                        <Link 
+                            :href="route('asistencias.index')" 
+                            class="block px-4 py-2 text-base font-medium rounded-md"
+                            :class="$page.url.startsWith('/asistencias') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                        >
+                            Asistencias
+                        </Link>
+                        <Link 
+                            :href="route('ventas.index')" 
+                            class="block px-4 py-2 text-base font-medium rounded-md"
+                            :class="$page.url.startsWith('/ventas') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                        >
+                            Ventas
                         </Link>
                         <Link 
                             :href="route('propietarios.index')" 

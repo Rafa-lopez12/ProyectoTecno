@@ -18,34 +18,52 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->name('dashboard');
 
-// Alumnos
-Route::prefix('alumnos')->group(function () {
+// Usuarios (Alumnos, Tutores y SubPropietarios)
+Route::prefix('usuarios')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Alumnos/Index');
-    })->name('alumnos.index');
-    
-    Route::get('/create', function () {
-        return Inertia::render('Alumnos/Create');
-    })->name('alumnos.create');
-    
-    Route::get('/{id}/edit', function ($id) {
-        return Inertia::render('Alumnos/Edit', ['id' => $id]);
-    })->name('alumnos.edit');
+        return Inertia::render('Usuarios/index');
+    })->name('usuarios.index');
 });
 
-// Tutores
-Route::prefix('tutores')->group(function () {
+// Inscripciones
+Route::prefix('inscripciones')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Tutores/Index');
-    })->name('tutores.index');
+        return Inertia::render('Inscripciones/Index');
+    })->name('inscripciones.index');
     
     Route::get('/create', function () {
-        return Inertia::render('Tutores/Create');
-    })->name('tutores.create');
+        return Inertia::render('Inscripciones/Create');
+    })->name('inscripciones.create');
     
     Route::get('/{id}/edit', function ($id) {
-        return Inertia::render('Tutores/Edit', ['id' => $id]);
-    })->name('tutores.edit');
+        return Inertia::render('Inscripciones/Edit', ['id' => $id]);
+    })->name('inscripciones.edit');
+});
+
+// Asistencias
+Route::prefix('asistencias')->group(function () {
+    Route::get('/', function () {
+        return Inertia::render('Asistencias/Index');
+    })->name('asistencias.index');
+    
+    Route::get('/create', function () {
+        return Inertia::render('Asistencias/Create');
+    })->name('asistencias.create');
+});
+
+// Ventas
+Route::prefix('ventas')->group(function () {
+    Route::get('/', function () {
+        return Inertia::render('Ventas/Index');
+    })->name('ventas.index');
+    
+    Route::get('/create', function () {
+        return Inertia::render('Ventas/Create');
+    })->name('ventas.create');
+    
+    Route::get('/{id}/edit', function ($id) {
+        return Inertia::render('Ventas/Edit', ['id' => $id]);
+    })->name('ventas.edit');
 });
 
 // Propietarios

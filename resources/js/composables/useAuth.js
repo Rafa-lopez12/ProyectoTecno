@@ -1,42 +1,41 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useApi } from './useApi';
 import axios from 'axios';
 
 const token = ref(localStorage.getItem('token'));
 const user = ref(JSON.parse(localStorage.getItem('user') || 'null'));
 
 export function useAuth() {
+    const { auth: authApi } = useApi();
     const isAuthenticated = computed(() => !!token.value);
 
     const login = async (email, password) => {
-        try {
-            const response = await axios.post('/api/auth/login', {
-                email,
-                password
-            });
+        const result = await authApi.login(email, password);
 
-            token.value = response.data.token;
-            user.value = response.data.user;
+        if (result.success) {
+            token.value = result.data.token;
+            user.value = result.data.user;
 
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            localStorage.setItem('token', result.data.token);
+            localStorage.setItem('user', JSON.stringify(result.data.user));
 
-            // Configurar token para futuras peticiones
-            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+            // Configurar token en axios para futuras peticiones
+            axios.defaults.headers.common['Authorization'] = `Bearer ${result.data.token}`;
 
-            return { success: true, data: response.data };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.response?.data?.message || 'Error al iniciar sesión'
-            };
+            return { success: true, data: result.data };
         }
+
+        return {
+            success: false,
+            message: result.error || 'Error al iniciar sesión'
+        };
     };
 
     const logout = async () => {
         try {
             if (token.value) {
-                await axios.post('/api/auth/logout');
+                await authApi.logout();
             }
         } catch (error) {
             console.error('Error al hacer logout:', error);
@@ -55,28 +54,17 @@ export function useAuth() {
             return false;
         }
 
-        try {
-            const response = await axios.get('/api/auth/me');
-            user.value = response.data.user;
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+        const result = await authApi.me();
+        if (result.success) {
+            user.value = result.data.user;
+            localStorage.setItem('user', JSON.stringify(result.data.user));
             return true;
-        } catch (error) {
-            // Token inválido o expirado
-            await logout();
-            return false;
         }
-    };
 
-    // Configurar interceptor para manejar errores 401
-    axios.interceptors.response.use(
-        response => response,
-        error => {
-            if (error.response?.status === 401) {
-                logout();
-            }
-            return Promise.reject(error);
-        }
-    );
+        // Token inválido o expirado
+        await logout();
+        return false;
+    };
 
     // Si hay token, configurarlo en axios
     if (token.value) {

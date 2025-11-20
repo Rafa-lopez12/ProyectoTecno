@@ -3,16 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class Tutor
 {
     /**
      * Validar datos de tutor
      */
-    public static function validar(array $datos)
+    public static function validar(array $datos, $id = null)
     {
-        return \Illuminate\Support\Facades\Validator::make($datos, [
-            'rol' => 'nullable|in:tutor_basico,tutor_premium',
+        return Validator::make($datos, [
+            'email' => 'required|email|unique:tutor,email' . ($id ? ',' . $id : ''),
+            'password' => ($id ? 'nullable' : 'required') . '|min:6',
+            'rol' => 'nullable|in:tutor,tutor',
+            'grado' => 'nullable|string|max:100',
         ]);
     }
 
@@ -26,13 +31,21 @@ class Tutor
             throw new \Exception('Error en datos de usuario: ' . $validatorUser->errors()->first());
         }
 
+        $validatorTutor = self::validar($datosTutor);
+        if ($validatorTutor->fails()) {
+            throw new \Exception('Error en datos de tutor: ' . $validatorTutor->errors()->first());
+        }
+
         DB::beginTransaction();
         try {
             $userId = User::crear($datosUsuario);
 
             $tutorId = DB::table('tutor')->insertGetId([
                 'user_id' => $userId,
-                'rol' => $datosTutor['rol'] ?? 'tutor_basico',
+                'rol' => $datosTutor['rol'] ?? 'tutor',
+                'grado' => $datosTutor['grado'] ?? null,
+                'email' => $datosTutor['email'],
+                'password' => Hash::make($datosTutor['password']),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -69,6 +82,15 @@ class Tutor
                 
                 if (isset($datosTutor['rol'])) {
                     $datosUpdate['rol'] = $datosTutor['rol'];
+                }
+                if (isset($datosTutor['grado'])) {
+                    $datosUpdate['grado'] = $datosTutor['grado'];
+                }
+                if (isset($datosTutor['email'])) {
+                    $datosUpdate['email'] = $datosTutor['email'];
+                }
+                if (isset($datosTutor['password']) && !empty($datosTutor['password'])) {
+                    $datosUpdate['password'] = Hash::make($datosTutor['password']);
                 }
 
                 if (!empty($datosUpdate)) {
@@ -143,6 +165,14 @@ class Tutor
     }
 
     /**
+     * Obtener tutor por email
+     */
+    public static function obtenerPorEmail($email)
+    {
+        return DB::table('tutor')->where('email', $email)->first();
+    }
+
+    /**
      * Listar todos los tutores
      */
     public static function listar($filtros = [])
@@ -163,7 +193,8 @@ class Tutor
             $search = $filtros['search'];
             $query->where(function($q) use ($search) {
                 $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%");
+                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%")
+                  ->orWhere('tutor.email', 'ILIKE', "%{$search}%");
             });
         }
 
