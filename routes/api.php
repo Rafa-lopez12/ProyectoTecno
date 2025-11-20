@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\AlumnoController;
 use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\PropietarioController;
 use App\Http\Controllers\Api\HorarioController;
+use App\Http\Controllers\Api\InscripcionController;
+use App\Http\Controllers\Api\InformeClaseController;
+use App\Models\Servicio;
 
 // Rutas públicas de autenticación
 Route::prefix('auth')->group(function () {
@@ -41,5 +44,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('horario/{id}/desasignar-tutor', [HorarioController::class, 'desasignarTutor']);
         Route::get('horario/{id}/tutores', [HorarioController::class, 'tutoresDeHorario']);
         Route::get('tutores/{tutorId}/horario', [HorarioController::class, 'horariosDeTutor']);
+        
+        // Inscripciones
+        Route::apiResource('inscripciones', InscripcionController::class);
+        Route::get('inscripciones/{id}/informes', [InscripcionController::class, 'informes']);
+        
+        // Informes de Clase
+        Route::apiResource('informes-clase', InformeClaseController::class);
+        
+        // Servicios
+        Route::get('servicios', function () {
+            return response()->json([
+                'message' => 'Lista de servicios',
+                'data' => Servicio::listarActivos()
+            ]);
+        });
     });
 });

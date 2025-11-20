@@ -1,18 +1,20 @@
 <script setup>
-import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import { useAuth } from '../composables/useAuth';
 
+const { user, logout, checkAuth } = useAuth();
 const showMobileMenu = ref(false);
 
-// Remover validación de auth para evitar problemas
-const user = ref({
-    nombre: 'Usuario'
+onMounted(async () => {
+    const isAuth = await checkAuth();
+    if (!isAuth) {
+        router.visit('/login');
+    }
 });
 
-const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+const handleLogout = async () => {
+    await logout();
 };
 </script>
 
@@ -39,6 +41,7 @@ const handleLogout = () => {
                                 Dashboard
                             </Link>
                             <Link 
+                                v-if="user?.rol !== 'tutor'"
                                 :href="route('usuarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
                                 :class="$page.url.startsWith('/usuarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -46,6 +49,7 @@ const handleLogout = () => {
                                 Usuarios
                             </Link>
                             <Link 
+                                v-if="user?.rol !== 'tutor'"
                                 :href="route('horarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
                                 :class="$page.url.startsWith('/horarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -67,6 +71,7 @@ const handleLogout = () => {
                                 Asistencias
                             </Link>
                             <Link 
+                                v-if="user?.rol !== 'tutor'"
                                 :href="route('ventas.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
                                 :class="$page.url.startsWith('/ventas') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -74,6 +79,7 @@ const handleLogout = () => {
                                 Ventas
                             </Link>
                             <Link 
+                                v-if="user?.rol !== 'tutor'"
                                 :href="route('propietarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
                                 :class="$page.url.startsWith('/propietarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -165,7 +171,7 @@ const handleLogout = () => {
                     </div>
                     <div class="border-t border-gray-200 mt-4 pt-4">
                         <div class="px-4 py-2 text-sm text-gray-700">
-                            {{ user?.nombre }}
+                            {{ user?.nombre }} {{ user?.apellido }}
                         </div>
                         <button
                             @click="handleLogout"

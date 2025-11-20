@@ -5,9 +5,27 @@ namespace App\Models;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Tutor
+class Tutor extends Authenticatable
 {
+    use HasApiTokens;
+
+    protected $table = 'tutor';
+
+    protected $fillable = [
+        'user_id',
+        'email',
+        'password',
+        'rol',
+        'grado',
+    ];
+
+    protected $hidden = [
+        'password',
+    ];
+
     /**
      * Validar datos de tutor
      */
@@ -60,7 +78,9 @@ class Tutor
         }
     }
 
-  
+    /**
+     * Actualizar tutor y su usuario
+     */
     public static function actualizarConUsuario($id, array $datosUsuario = [], array $datosTutor = [])
     {
         $tutor = self::obtenerPorIdSimple($id);
@@ -107,7 +127,9 @@ class Tutor
         }
     }
 
-   
+    /**
+     * Eliminar tutor (cambiar estado a inactivo)
+     */
     public static function eliminarConUsuario($id)
     {
         $tutor = self::obtenerPorIdSimple($id);
@@ -135,6 +157,9 @@ class Tutor
         }
     }
 
+    /**
+     * Obtener tutor por ID con datos de usuario
+     */
     public static function obtenerPorId($id)
     {
         return DB::table('tutor')
@@ -152,19 +177,25 @@ class Tutor
             ->first();
     }
 
-  
+    /**
+     * Obtener tutor por ID (solo tabla tutor)
+     */
     public static function obtenerPorIdSimple($id)
     {
         return DB::table('tutor')->where('id', $id)->first();
     }
 
-  
+    /**
+     * Obtener tutor por email
+     */
     public static function obtenerPorEmail($email)
     {
         return DB::table('tutor')->where('email', $email)->first();
     }
 
-   
+    /**
+     * Listar tutores (solo activos por defecto)
+     */
     public static function listar($filtros = [])
     {
         $query = DB::table('tutor')
