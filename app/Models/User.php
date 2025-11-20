@@ -62,11 +62,14 @@ class User
     }
 
     /**
-     * Eliminar usuario
+     * Eliminar usuario (soft delete - cambiar estado a inactivo)
      */
     public static function eliminar($id)
     {
-        return DB::table('usuario')->where('id', $id)->delete();
+        return DB::table('usuario')->where('id', $id)->update([
+            'estado' => 'inactivo',
+            'updated_at' => now()
+        ]);
     }
 
     /**
@@ -103,9 +106,6 @@ class User
         ]);
     }
 
-    /**
-     * Obtener nombre completo
-     */
     public static function obtenerNombreCompleto($user)
     {
         if (is_object($user)) {

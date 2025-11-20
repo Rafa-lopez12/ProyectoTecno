@@ -130,7 +130,7 @@ class Propietario extends Authenticatable
     }
 
     /**
-     * Eliminar propietario y su usuario
+     * Eliminar propietario (cambiar estado a inactivo)
      */
     public static function eliminarConUsuario($id)
     {
@@ -142,10 +142,13 @@ class Propietario extends Authenticatable
 
         DB::beginTransaction();
         try {
-            $userId = $propietario->user_id;
-            
-            DB::table('propietario')->where('id', $id)->delete();
-            User::eliminar($userId);
+            // Cambiar estado del usuario a inactivo en lugar de eliminar
+            DB::table('usuario')
+                ->where('id', $propietario->user_id)
+                ->update([
+                    'estado' => 'inactivo',
+                    'updated_at' => now()
+                ]);
 
             DB::commit();
             return true;
@@ -195,6 +198,9 @@ class Propietario extends Authenticatable
         return $propietario;
     }
 
+    /**
+     * Listar propietarios (solo activos por defecto)
+     */
     public static function listar($filtros = [])
     {
         $query = DB::table('propietario')
@@ -207,18 +213,23 @@ class Propietario extends Authenticatable
                 'usuario.estado'
             );
 
+        // Por defecto solo mostrar activos, a menos que se especifique lo contrario
+        if (!isset($filtros['mostrar_inactivos']) || !$filtros['mostrar_inactivos']) {
+            $query->where('usuario.estado', 'activo');
+        }
+
         // Aplicar filtros
         if (isset($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function($q) use ($search) {
-                $q->where('user.nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('user.apellido', 'ILIKE', "%{$search}%")
+                $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
+                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%")
                   ->orWhere('propietario.email', 'ILIKE', "%{$search}%");
             });
         }
 
         if (isset($filtros['estado'])) {
-            $query->where('user.estado', $filtros['estado']);
+            $query->where('usuario.estado', $filtros['estado']);
         }
 
         return $query->get();

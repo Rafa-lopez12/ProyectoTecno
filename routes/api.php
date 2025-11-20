@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AlumnoController;
 use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\PropietarioController;
+use App\Http\Controllers\Api\HorarioController;
 
 // Rutas públicas de autenticación
 Route::prefix('auth')->group(function () {
@@ -33,5 +34,12 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Propietarios
         Route::apiResource('propietarios', PropietarioController::class);
+        
+        // Horarios
+        Route::apiResource('horarios', HorarioController::class);
+        Route::post('horarios/{id}/asignar-tutor', [HorarioController::class, 'asignarTutor']);
+        Route::post('horarios/{id}/desasignar-tutor', [HorarioController::class, 'desasignarTutor']);
+        Route::get('horarios/{id}/tutores', [HorarioController::class, 'tutoresDeHorario']);
+        Route::get('tutores/{tutorId}/horarios', [HorarioController::class, 'horariosDeTutor']);
     });
 });

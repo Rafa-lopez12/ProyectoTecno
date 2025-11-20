@@ -25,6 +25,21 @@ Route::prefix('usuarios')->group(function () {
     })->name('usuarios.index');
 });
 
+// Horarios
+Route::prefix('horarios')->group(function () {
+    Route::get('/', function () {
+        return Inertia::render('Horarios/index');
+    })->name('horarios.index');
+    
+    Route::get('/create', function () {
+        return Inertia::render('Horarios/Create');
+    })->name('horarios.create');
+    
+    Route::get('/{id}/edit', function ($id) {
+        return Inertia::render('Horarios/Edit', ['id' => $id]);
+    })->name('horarios.edit');
+});
+
 // Inscripciones
 Route::prefix('inscripciones')->group(function () {
     Route::get('/', function () {

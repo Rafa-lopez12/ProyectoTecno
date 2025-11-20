@@ -95,9 +95,7 @@ class Alumno
         }
     }
 
-    /**
-     * Eliminar alumno y su usuario
-     */
+   
     public static function eliminarConUsuario($id)
     {
         $alumno = self::obtenerPorIdSimple($id);
@@ -108,10 +106,13 @@ class Alumno
 
         DB::beginTransaction();
         try {
-            $userId = $alumno->user_id;
-            
-            DB::table('alumno')->where('id', $id)->delete();
-            User::eliminar($userId);
+            // Cambiar estado del usuario a inactivo en lugar de eliminar
+            DB::table('usuario')
+                ->where('id', $alumno->user_id)
+                ->update([
+                    'estado' => 'inactivo',
+                    'updated_at' => now()
+                ]);
 
             DB::commit();
             return true;
@@ -122,9 +123,7 @@ class Alumno
         }
     }
 
-    /**
-     * Obtener alumno por ID con datos de usuario
-     */
+   
     public static function obtenerPorId($id)
     {
         return DB::table('alumno')
@@ -151,9 +150,7 @@ class Alumno
     }
 
     
-    /**
-     * Listar todos los alumnos
-     */
+
     public static function listar($filtros = [])
     {
         $query = DB::table('alumno')
@@ -167,6 +164,11 @@ class Alumno
                 'usuario.direccion',
                 'usuario.estado'
             );
+
+        // Por defecto solo mostrar activos, a menos que se especifique lo contrario
+        if (!isset($filtros['mostrar_inactivos']) || !$filtros['mostrar_inactivos']) {
+            $query->where('usuario.estado', 'activo');
+        }
 
         if (isset($filtros['search'])) {
             $search = $filtros['search'];

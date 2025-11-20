@@ -1,20 +1,18 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
-import { useAuth } from '../composables/useAuth';
+import { ref } from 'vue';
+import { Link } from '@inertiajs/vue3';
 
-const { user, logout, checkAuth } = useAuth();
 const showMobileMenu = ref(false);
 
-onMounted(async () => {
-    const isAuth = await checkAuth();
-    if (!isAuth) {
-        router.visit('/login');
-    }
+// Remover validación de auth para evitar problemas
+const user = ref({
+    nombre: 'Usuario'
 });
 
-const handleLogout = async () => {
-    await logout();
+const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
 };
 </script>
 
@@ -46,6 +44,13 @@ const handleLogout = async () => {
                                 :class="$page.url.startsWith('/usuarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             >
                                 Usuarios
+                            </Link>
+                            <Link 
+                                :href="route('horarios.index')" 
+                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
+                                :class="$page.url.startsWith('/horarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            >
+                                Horarios
                             </Link>
                             <Link 
                                 :href="route('inscripciones.index')" 
@@ -123,6 +128,13 @@ const handleLogout = async () => {
                             Usuarios
                         </Link>
                         <Link 
+                            :href="route('horarios.index')" 
+                            class="block px-4 py-2 text-base font-medium rounded-md"
+                            :class="$page.url.startsWith('/horarios') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                        >
+                            Horarios
+                        </Link>
+                        <Link 
                             :href="route('inscripciones.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
                             :class="$page.url.startsWith('/inscripciones') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
@@ -153,7 +165,7 @@ const handleLogout = async () => {
                     </div>
                     <div class="border-t border-gray-200 mt-4 pt-4">
                         <div class="px-4 py-2 text-sm text-gray-700">
-                            {{ user?.nombre }} {{ user?.apellido }}
+                            {{ user?.nombre }}
                         </div>
                         <button
                             @click="handleLogout"

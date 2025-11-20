@@ -131,12 +131,45 @@ export function useApi() {
             request('DELETE', `/v1/propietarios/${id}`)
     };
 
+    // ============================================
+    // HORARIOS
+    // ============================================
+    const horarios = {
+        getAll: (params = {}) => 
+            request('GET', '/v1/horarios', null, { params }),
+        
+        getById: (id) => 
+            request('GET', `/v1/horarios/${id}`),
+        
+        create: (data) => 
+            request('POST', '/v1/horarios', data),
+        
+        update: (id, data) => 
+            request('PUT', `/v1/horarios/${id}`, data),
+        
+        delete: (id) => 
+            request('DELETE', `/v1/horarios/${id}`),
+        
+        asignarTutor: (horarioId, tutorId) => 
+            request('POST', `/v1/horarios/${horarioId}/asignar-tutor`, { tutor_id: tutorId }),
+        
+        desasignarTutor: (horarioId, tutorId) => 
+            request('POST', `/v1/horarios/${horarioId}/desasignar-tutor`, { tutor_id: tutorId }),
+        
+        getTutores: (horarioId) => 
+            request('GET', `/v1/horarios/${horarioId}/tutores`),
+        
+        getHorariosDeTutor: (tutorId) => 
+            request('GET', `/v1/tutores/${tutorId}/horarios`)
+    };
+
     return {
         loading,
         error,
         auth,
         alumnos,
         tutores,
-        propietarios
+        propietarios,
+        horarios
     };
 }

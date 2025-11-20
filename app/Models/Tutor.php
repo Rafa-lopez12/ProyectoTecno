@@ -60,9 +60,7 @@ class Tutor
         }
     }
 
-    /**
-     * Actualizar tutor y su usuario
-     */
+  
     public static function actualizarConUsuario($id, array $datosUsuario = [], array $datosTutor = [])
     {
         $tutor = self::obtenerPorIdSimple($id);
@@ -109,9 +107,7 @@ class Tutor
         }
     }
 
-    /**
-     * Eliminar tutor y su usuario
-     */
+   
     public static function eliminarConUsuario($id)
     {
         $tutor = self::obtenerPorIdSimple($id);
@@ -122,10 +118,13 @@ class Tutor
 
         DB::beginTransaction();
         try {
-            $userId = $tutor->user_id;
-
-            DB::table('tutor')->where('id', $id)->delete();
-            User::eliminar($userId);
+            // Cambiar estado del usuario a inactivo en lugar de eliminar
+            DB::table('usuario')
+                ->where('id', $tutor->user_id)
+                ->update([
+                    'estado' => 'inactivo',
+                    'updated_at' => now()
+                ]);
 
             DB::commit();
             return true;
@@ -136,9 +135,6 @@ class Tutor
         }
     }
 
-    /**
-     * Obtener tutor por ID con datos de usuario
-     */
     public static function obtenerPorId($id)
     {
         return DB::table('tutor')
@@ -156,25 +152,19 @@ class Tutor
             ->first();
     }
 
-    /**
-     * Obtener tutor por ID (solo tabla tutor)
-     */
+  
     public static function obtenerPorIdSimple($id)
     {
         return DB::table('tutor')->where('id', $id)->first();
     }
 
-    /**
-     * Obtener tutor por email
-     */
+  
     public static function obtenerPorEmail($email)
     {
         return DB::table('tutor')->where('email', $email)->first();
     }
 
-    /**
-     * Listar todos los tutores
-     */
+   
     public static function listar($filtros = [])
     {
         $query = DB::table('tutor')
@@ -188,6 +178,11 @@ class Tutor
                 'usuario.direccion',
                 'usuario.estado'
             );
+
+        // Por defecto solo mostrar activos, a menos que se especifique lo contrario
+        if (!isset($filtros['mostrar_inactivos']) || !$filtros['mostrar_inactivos']) {
+            $query->where('usuario.estado', 'activo');
+        }
 
         if (isset($filtros['search'])) {
             $search = $filtros['search'];
