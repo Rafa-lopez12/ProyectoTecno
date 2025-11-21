@@ -4,11 +4,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AlumnoController;
+use App\Http\Controllers\Api\AsistenciaController;
 use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\PropietarioController;
 use App\Http\Controllers\Api\HorarioController;
 use App\Http\Controllers\Api\InscripcionController;
 use App\Http\Controllers\Api\InformeClaseController;
+use App\Http\Controllers\Api\LicenciaController;
+use App\Http\Controllers\Api\ReprogramacionController;
 use App\Models\Servicio;
 
 // Rutas públicas de autenticación
@@ -59,5 +62,22 @@ Route::middleware('auth:sanctum')->group(function () {
                 'data' => Servicio::listarActivos()
             ]);
         });
+
+            // Asistencias
+        Route::apiResource('asistencias', AsistenciaController::class);
+        Route::get('asistencias/inscripcion/{inscripcionId}', [AsistenciaController::class, 'porInscripcion']);
+        
+        // Licencias
+        Route::apiResource('licencias', LicenciaController::class);
+        Route::post('licencias/{id}/aprobar', [LicenciaController::class, 'aprobar']);
+        Route::post('licencias/{id}/rechazar', [LicenciaController::class, 'rechazar']);
+        Route::get('licencias/{id}/reprogramaciones', [LicenciaController::class, 'reprogramaciones']);
+        
+        // Reprogramaciones
+        Route::apiResource('reprogramaciones', ReprogramacionController::class);
+        Route::post('reprogramaciones/{id}/marcar-realizada', [ReprogramacionController::class, 'marcarRealizada']);
+        Route::post('reprogramaciones/{id}/cancelar', [ReprogramacionController::class, 'cancelar']);
+
+        
     });
 });

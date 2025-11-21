@@ -55,6 +55,24 @@ Route::prefix('inscripciones')->group(function () {
     })->name('inscripciones.edit');
 });
 
+Route::prefix('inscripciones/{inscripcionId}/informes')->group(function () {
+    Route::get('/', function ($inscripcionId) {
+        return Inertia::render('Informes/index', ['inscripcionId' => $inscripcionId]);
+    })->name('inscripciones.informes.index');
+    
+    Route::get('/create', function ($inscripcionId) {
+        return Inertia::render('Informes/Create', ['inscripcionId' => $inscripcionId]);
+    })->name('inscripciones.informes.create');
+    
+    Route::get('/{id}', function ($inscripcionId, $id) {
+        return Inertia::render('Informes/Show', ['inscripcionId' => $inscripcionId, 'id' => $id]);
+    })->name('inscripciones.informes.show');
+    
+    Route::get('/{id}/edit', function ($inscripcionId, $id) {
+        return Inertia::render('Informes/Edit', ['inscripcionId' => $inscripcionId, 'id' => $id]);
+    })->name('inscripciones.informes.edit');
+});
+
 // Asistencias
 Route::prefix('asistencias')->group(function () {
     Route::get('/', function () {

@@ -215,6 +215,57 @@ export function useApi() {
             request('GET', '/v1/servicios')
     };
 
+    const asistencias = {
+        getAll: (params = {}) =>
+            request('GET', '/v1/asistencias', null, { params }),
+        getById: id =>
+            request('GET', `/v1/asistencias/${id}`),
+        create: data =>
+            request('POST', '/v1/asistencias', data),
+        update: (id, data) =>
+            request('PUT', `/v1/asistencias/${id}`, data),
+        delete: id =>
+            request('DELETE', `/v1/asistencias/${id}`),
+        porInscripcion: inscripcionId =>
+            request('GET', `/v1/asistencias/inscripcion/${inscripcionId}`)
+    };
+
+    const licencias = {
+        getAll: (params = {}) =>
+            request('GET', '/v1/licencias', null, { params }),
+        getById: id =>
+            request('GET', `/v1/licencias/${id}`),
+        create: data =>
+            request('POST', '/v1/licencias', data),
+        update: (id, data) =>
+            request('PUT', `/v1/licencias/${id}`, data),
+        delete: id =>
+            request('DELETE', `/v1/licencias/${id}`),
+        aprobar: id =>
+            request('POST', `/v1/licencias/${id}/aprobar`),
+        rechazar: id =>
+            request('POST', `/v1/licencias/${id}/rechazar`),
+        getReprogramaciones: id =>
+            request('GET', `/v1/licencias/${id}/reprogramaciones`)
+    };
+
+    const reprogramaciones = {
+        getAll: (params = {}) =>
+            request('GET', '/v1/reprogramaciones', null, { params }),
+        getById: id =>
+            request('GET', `/v1/reprogramaciones/${id}`),
+        create: data =>
+            request('POST', '/v1/reprogramaciones', data),
+        update: (id, data) =>
+            request('PUT', `/v1/reprogramaciones/${id}`, data),
+        delete: id =>
+            request('DELETE', `/v1/reprogramaciones/${id}`),
+        marcarRealizada: id =>
+            request('POST', `/v1/reprogramaciones/${id}/marcar-realizada`),
+        cancelar: id =>
+            request('POST', `/v1/reprogramaciones/${id}/cancelar`)
+    };
+
     return {
         loading,
         error,
@@ -225,6 +276,9 @@ export function useApi() {
         horarios,
         inscripciones,
         informesClase,
-        servicios
+        servicios,
+        asistencias,
+        licencias,
+        reprogramaciones
     };
 }
