@@ -46,8 +46,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('tutores/{tutorId}/horario', [HorarioController::class, 'horariosDeTutor']);
         
         // Inscripciones
-        Route::apiResource('inscripciones', InscripcionController::class);
-        Route::get('inscripciones/{id}/informes', [InscripcionController::class, 'informes']);
+        Route::apiResource('inscripcion', InscripcionController::class);
+        Route::get('inscripcion/{id}/informes', [InscripcionController::class, 'informes']);
         
         // Informes de Clase
         Route::apiResource('informes-clase', InformeClaseController::class);

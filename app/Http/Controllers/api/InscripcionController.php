@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inscripcion;
+use App\Models\Tutor;
 use Illuminate\Http\Request;
 
 class InscripcionController extends Controller
@@ -11,19 +12,25 @@ class InscripcionController extends Controller
     public function index(Request $request)
     {
         try {
+            $user = $request->user();
+            
             $filtros = [
                 'estado' => $request->get('estado'),
                 'alumno_id' => $request->get('alumno_id'),
-                'tutor_id' => $request->get('tutor_id'),
                 'servicio_id' => $request->get('servicio_id'),
             ];
-
+    
+            // Si es tutor, solo ver sus inscripciones
+            if (get_class($user) === Tutor::class) {
+                $filtros['tutor_id'] = $user->id;
+            }
+    
             $inscripciones = Inscripcion::listar($filtros);
-
+    
             return response()->json([
                 'data' => $inscripciones
             ]);
-
+    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al listar inscripciones',

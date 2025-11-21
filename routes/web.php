@@ -43,7 +43,7 @@ Route::prefix('horarios')->group(function () {
 // Inscripciones
 Route::prefix('inscripciones')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Inscripciones/Index');
+        return Inertia::render('Inscripciones/index');
     })->name('inscripciones.index');
     
     Route::get('/create', function () {
