@@ -12,6 +12,7 @@ class LicenciaController extends Controller
     {
         try {
             $filtros = [
+                'asistencia_id' => $request->get('asistencia_id'),
                 'tutor_id' => $request->get('tutor_id'),
                 'estado' => $request->get('estado'),
                 'fecha_desde' => $request->get('fecha_desde'),
@@ -36,7 +37,7 @@ class LicenciaController extends Controller
     {
         try {
             $datos = $request->only([
-                'tutor_id', 'fecha_licencia', 'motivo', 'estado'
+                'asistencia_id', 'motivo', 'estado'
             ]);
 
             $licencia = Licencia::crear($datos);
@@ -77,11 +78,35 @@ class LicenciaController extends Controller
         }
     }
 
+    // Método nuevo: obtener licencia por asistencia
+    public function porAsistencia($asistenciaId)
+    {
+        try {
+            $licencia = Licencia::obtenerPorAsistencia($asistenciaId);
+
+            if (!$licencia) {
+                return response()->json([
+                    'message' => 'No se encontró licencia para esta asistencia'
+                ], 404);
+            }
+
+            return response()->json([
+                'data' => $licencia
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener licencia',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         try {
             $datos = $request->only([
-                'fecha_licencia', 'motivo', 'estado'
+                'motivo', 'estado'
             ]);
 
             $licencia = Licencia::actualizar($id, $datos);
@@ -119,10 +144,11 @@ class LicenciaController extends Controller
     public function aprobar($id)
     {
         try {
-            Licencia::aprobar($id);
+            $licencia = Licencia::aprobar($id);
 
             return response()->json([
-                'message' => 'Licencia aprobada exitosamente'
+                'message' => 'Licencia aprobada exitosamente',
+                'data' => $licencia
             ]);
 
         } catch (\Exception $e) {
@@ -136,10 +162,11 @@ class LicenciaController extends Controller
     public function rechazar($id)
     {
         try {
-            Licencia::rechazar($id);
+            $licencia = Licencia::rechazar($id);
 
             return response()->json([
-                'message' => 'Licencia rechazada'
+                'message' => 'Licencia rechazada',
+                'data' => $licencia
             ]);
 
         } catch (\Exception $e) {

@@ -10,8 +10,7 @@ class Licencia
     public static function validar(array $datos)
     {
         return Validator::make($datos, [
-            'tutor_id' => 'required|exists:tutor,id',
-            'fecha_licencia' => 'required|date',
+            'asistencia_id' => 'required|exists:asistencia,id',
             'motivo' => 'required|string',
             'estado' => 'nullable|in:pendiente,aprobada,rechazada'
         ]);
@@ -24,9 +23,28 @@ class Licencia
             throw new \Exception('Error en datos: ' . $validator->errors()->first());
         }
 
+        // Verificar que la asistencia existe y es "ausente"
+        $asistencia = DB::table('asistencia')->where('id', $datos['asistencia_id'])->first();
+        
+        if (!$asistencia) {
+            throw new \Exception('Asistencia no encontrada');
+        }
+
+        if ($asistencia->estado !== 'ausente') {
+            throw new \Exception('Solo se puede crear licencia para asistencias ausentes');
+        }
+
+        // Verificar que no tenga ya una licencia
+        $existeLicencia = DB::table('licencia')
+            ->where('asistencia_id', $datos['asistencia_id'])
+            ->exists();
+
+        if ($existeLicencia) {
+            throw new \Exception('Esta asistencia ya tiene una licencia asociada');
+        }
+
         $id = DB::table('licencia')->insertGetId([
-            'tutor_id' => $datos['tutor_id'],
-            'fecha_licencia' => $datos['fecha_licencia'],
+            'asistencia_id' => $datos['asistencia_id'],
             'motivo' => $datos['motivo'],
             'estado' => $datos['estado'] ?? 'pendiente',
             'fecha_solicitud' => now(),
@@ -47,12 +65,10 @@ class Licencia
 
         $datosUpdate = [];
         
-        if (isset($datos['fecha_licencia'])) {
-            $datosUpdate['fecha_licencia'] = $datos['fecha_licencia'];
-        }
         if (isset($datos['motivo'])) {
             $datosUpdate['motivo'] = $datos['motivo'];
         }
+        
         if (isset($datos['estado'])) {
             $datosUpdate['estado'] = $datos['estado'];
         }
@@ -73,6 +89,15 @@ class Licencia
             throw new \Exception('Licencia no encontrada');
         }
 
+        // Verificar si tiene reprogramaciones
+        $tieneReprogramaciones = DB::table('reprogramacion')
+            ->where('licencia_id', $id)
+            ->exists();
+
+        if ($tieneReprogramaciones) {
+            throw new \Exception('No se puede eliminar porque tiene reprogramaciones asociadas');
+        }
+
         DB::table('licencia')->where('id', $id)->delete();
         return true;
     }
@@ -80,12 +105,20 @@ class Licencia
     public static function obtenerPorId($id)
     {
         return DB::table('licencia')
-            ->join('tutor', 'licencia.tutor_id', '=', 'tutor.id')
-            ->join('usuario', 'tutor.user_id', '=', 'usuario.id')
+            ->join('asistencia', 'licencia.asistencia_id', '=', 'asistencia.id')
+            ->join('inscripcion', 'asistencia.inscripcion_id', '=', 'inscripcion.id')
+            ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+            ->join('tutor', 'inscripcion.tutor_id', '=', 'tutor.id')
+            ->join('usuario as u_alumno', 'alumno.user_id', '=', 'u_alumno.id')
+            ->join('usuario as u_tutor', 'tutor.user_id', '=', 'u_tutor.id')
             ->where('licencia.id', $id)
             ->select(
                 'licencia.*',
-                DB::raw("CONCAT(usuario.nombre, ' ', usuario.apellido) as tutor_nombre")
+                'asistencia.fecha as fecha_asistencia',
+                'asistencia.estado as estado_asistencia',
+                'inscripcion.id as inscripcion_id',
+                DB::raw("CONCAT(u_alumno.nombre, ' ', u_alumno.apellido) as alumno_nombre"),
+                DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre")
             )
             ->first();
     }
@@ -95,18 +128,40 @@ class Licencia
         return DB::table('licencia')->where('id', $id)->first();
     }
 
+    public static function obtenerPorAsistencia($asistenciaId)
+    {
+        $licencia = DB::table('licencia')->where('asistencia_id', $asistenciaId)->first();
+        
+        if (!$licencia) {
+            return null;
+        }
+
+        return self::obtenerPorId($licencia->id);
+    }
+
     public static function listar($filtros = [])
     {
         $query = DB::table('licencia')
-            ->join('tutor', 'licencia.tutor_id', '=', 'tutor.id')
-            ->join('usuario', 'tutor.user_id', '=', 'usuario.id')
+            ->join('asistencia', 'licencia.asistencia_id', '=', 'asistencia.id')
+            ->join('inscripcion', 'asistencia.inscripcion_id', '=', 'inscripcion.id')
+            ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+            ->join('tutor', 'inscripcion.tutor_id', '=', 'tutor.id')
+            ->join('usuario as u_alumno', 'alumno.user_id', '=', 'u_alumno.id')
+            ->join('usuario as u_tutor', 'tutor.user_id', '=', 'u_tutor.id')
             ->select(
                 'licencia.*',
-                DB::raw("CONCAT(usuario.nombre, ' ', usuario.apellido) as tutor_nombre")
+                'asistencia.fecha as fecha_asistencia',
+                'inscripcion.id as inscripcion_id',
+                DB::raw("CONCAT(u_alumno.nombre, ' ', u_alumno.apellido) as alumno_nombre"),
+                DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre")
             );
 
+        if (isset($filtros['asistencia_id'])) {
+            $query->where('licencia.asistencia_id', $filtros['asistencia_id']);
+        }
+
         if (isset($filtros['tutor_id'])) {
-            $query->where('licencia.tutor_id', $filtros['tutor_id']);
+            $query->where('inscripcion.tutor_id', $filtros['tutor_id']);
         }
 
         if (isset($filtros['estado'])) {
@@ -114,11 +169,11 @@ class Licencia
         }
 
         if (isset($filtros['fecha_desde'])) {
-            $query->where('licencia.fecha_licencia', '>=', $filtros['fecha_desde']);
+            $query->where('asistencia.fecha', '>=', $filtros['fecha_desde']);
         }
 
         if (isset($filtros['fecha_hasta'])) {
-            $query->where('licencia.fecha_licencia', '<=', $filtros['fecha_hasta']);
+            $query->where('asistencia.fecha', '<=', $filtros['fecha_hasta']);
         }
 
         return $query->orderBy('licencia.fecha_solicitud', 'desc')->get();
@@ -126,18 +181,42 @@ class Licencia
 
     public static function aprobar($id)
     {
-        return DB::table('licencia')->where('id', $id)->update([
+        $licencia = self::obtenerPorIdSimple($id);
+        
+        if (!$licencia) {
+            throw new \Exception('Licencia no encontrada');
+        }
+
+        if ($licencia->estado !== 'pendiente') {
+            throw new \Exception('Solo se pueden aprobar licencias pendientes');
+        }
+
+        DB::table('licencia')->where('id', $id)->update([
             'estado' => 'aprobada',
             'updated_at' => now()
         ]);
+
+        return self::obtenerPorId($id);
     }
 
     public static function rechazar($id)
     {
-        return DB::table('licencia')->where('id', $id)->update([
+        $licencia = self::obtenerPorIdSimple($id);
+        
+        if (!$licencia) {
+            throw new \Exception('Licencia no encontrada');
+        }
+
+        if ($licencia->estado !== 'pendiente') {
+            throw new \Exception('Solo se pueden rechazar licencias pendientes');
+        }
+
+        DB::table('licencia')->where('id', $id)->update([
             'estado' => 'rechazada',
             'updated_at' => now()
         ]);
+
+        return self::obtenerPorId($id);
     }
 
     public static function obtenerReprogramaciones($licenciaId)

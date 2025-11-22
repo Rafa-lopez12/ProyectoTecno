@@ -1,3 +1,4 @@
+// database/migrations/0001_01_01_000015_create_reprogramacion_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -13,7 +14,7 @@ return new class extends Migration
             $table->unsignedBigInteger('licencia_id');
             $table->date('fecha_original');
             $table->date('fecha_nueva');
-            $table->string('estado', 20)->default('programada'); // programada, realizada, cancelada
+            $table->enum('estado', ['programada', 'realizada', 'cancelada'])->default('programada');
             $table->text('observaciones')->nullable();
             $table->timestamps();
             $table->softDeletes();

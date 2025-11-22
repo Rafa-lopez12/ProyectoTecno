@@ -1,3 +1,4 @@
+// database/migrations/0001_01_01_000014_create_licencia_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -10,16 +11,18 @@ return new class extends Migration
     {
         Schema::create('licencia', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tutor_id');
-            $table->date('fecha_licencia');
+            $table->unsignedBigInteger('asistencia_id');
             $table->text('motivo');
-            $table->string('estado', 20)->default('pendiente'); // pendiente, aprobada, rechazada
+            $table->enum('estado', ['pendiente', 'aprobada', 'rechazada'])->default('pendiente');
             $table->timestamp('fecha_solicitud')->useCurrent();
             $table->timestamps();
             $table->softDeletes();
             
             // Foreign key
-            $table->foreign('tutor_id')->references('id')->on('tutor')->onDelete('cascade');
+            $table->foreign('asistencia_id')->references('id')->on('asistencia')->onDelete('cascade');
+            
+            // Unique constraint - una asistencia solo puede tener una licencia
+            $table->unique('asistencia_id');
         });
     }
 

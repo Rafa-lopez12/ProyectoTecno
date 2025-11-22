@@ -39,7 +39,7 @@ class AsistenciaController extends Controller
             $datos = $request->only([
                 'inscripcion_id', 'fecha', 'estado', 'observaciones'
             ]);
-
+            
             $asistencia = Asistencia::crear($datos);
 
             return response()->json([

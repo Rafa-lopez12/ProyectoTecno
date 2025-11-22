@@ -64,19 +64,20 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
             // Asistencias
-        Route::apiResource('asistencias', AsistenciaController::class);
-        Route::get('asistencias/inscripcion/{inscripcionId}', [AsistenciaController::class, 'porInscripcion']);
+        Route::apiResource('asistencia', AsistenciaController::class);
+        Route::get('asistencia/inscripcion/{inscripcionId}', [AsistenciaController::class, 'porInscripcion']);
         
         // Licencias
-        Route::apiResource('licencias', LicenciaController::class);
-        Route::post('licencias/{id}/aprobar', [LicenciaController::class, 'aprobar']);
-        Route::post('licencias/{id}/rechazar', [LicenciaController::class, 'rechazar']);
-        Route::get('licencias/{id}/reprogramaciones', [LicenciaController::class, 'reprogramaciones']);
+        Route::apiResource('licencia', LicenciaController::class);
+        Route::get('licencia/asistencia/{asistenciaId}', [LicenciaController::class, 'porAsistencia']); 
+        Route::post('licencia/{id}/aprobar', [LicenciaController::class, 'aprobar']);
+        Route::post('licencia/{id}/rechazar', [LicenciaController::class, 'rechazar']);
+        Route::get('licencia/{id}/reprogramacione', [LicenciaController::class, 'reprogramaciones']);
         
         // Reprogramaciones
-        Route::apiResource('reprogramaciones', ReprogramacionController::class);
-        Route::post('reprogramaciones/{id}/marcar-realizada', [ReprogramacionController::class, 'marcarRealizada']);
-        Route::post('reprogramaciones/{id}/cancelar', [ReprogramacionController::class, 'cancelar']);
+        Route::apiResource('reprogramacione', ReprogramacionController::class);
+        Route::post('reprogramacione/{id}/marcar-realizada', [ReprogramacionController::class, 'marcarRealizada']);
+        Route::post('reprogramacione/{id}/cancelar', [ReprogramacionController::class, 'cancelar']);
 
         
     });

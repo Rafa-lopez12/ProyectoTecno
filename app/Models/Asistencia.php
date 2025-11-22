@@ -12,7 +12,7 @@ class Asistencia
         return Validator::make($datos, [
             'inscripcion_id' => 'required|exists:inscripcion,id',
             'fecha' => 'required|date',
-            'estado' => 'required|in:presente,ausente,tardanza,justificado',
+            'estado' => 'required|in:presente,ausente,tardanza,justificado,recuperada',
             'observaciones' => 'nullable|string'
         ]);
     }
@@ -54,6 +54,15 @@ class Asistencia
             throw new \Exception('Asistencia no encontrada');
         }
 
+        // Verificar si tiene licencia asociada
+        $tieneLicencia = DB::table('licencia')
+            ->where('asistencia_id', $id)
+            ->exists();
+
+        if ($tieneLicencia && isset($datos['estado']) && $datos['estado'] !== 'ausente') {
+            throw new \Exception('No se puede cambiar el estado porque tiene una licencia asociada');
+        }
+
         $datosUpdate = [];
         
         if (isset($datos['fecha'])) {
@@ -82,22 +91,39 @@ class Asistencia
             throw new \Exception('Asistencia no encontrada');
         }
 
+        // Verificar si tiene licencia asociada
+        $tieneLicencia = DB::table('licencia')
+            ->where('asistencia_id', $id)
+            ->exists();
+
+        if ($tieneLicencia) {
+            throw new \Exception('No se puede eliminar porque tiene una licencia asociada');
+        }
+
         DB::table('asistencia')->where('id', $id)->delete();
         return true;
     }
 
     public static function obtenerPorId($id)
     {
-        return DB::table('asistencia')
+        $asistencia = DB::table('asistencia')
             ->join('inscripcion', 'asistencia.inscripcion_id', '=', 'inscripcion.id')
             ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
-            ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
+            ->join('tutor', 'inscripcion.tutor_id', '=', 'tutor.id')
+            ->join('usuario as u_alumno', 'alumno.user_id', '=', 'u_alumno.id')
+            ->join('usuario as u_tutor', 'tutor.user_id', '=', 'u_tutor.id')
+            ->leftJoin('licencia', 'asistencia.id', '=', 'licencia.asistencia_id')
             ->where('asistencia.id', $id)
             ->select(
                 'asistencia.*',
-                DB::raw("CONCAT(usuario.nombre, ' ', usuario.apellido) as alumno_nombre")
+                DB::raw("CONCAT(u_alumno.nombre, ' ', u_alumno.apellido) as alumno_nombre"),
+                DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre"),
+                'licencia.id as licencia_id',
+                'licencia.estado as licencia_estado'
             )
             ->first();
+
+        return $asistencia;
     }
 
     public static function obtenerPorIdSimple($id)
@@ -113,10 +139,13 @@ class Asistencia
             ->join('tutor', 'inscripcion.tutor_id', '=', 'tutor.id')
             ->join('usuario as u_alumno', 'alumno.user_id', '=', 'u_alumno.id')
             ->join('usuario as u_tutor', 'tutor.user_id', '=', 'u_tutor.id')
+            ->leftJoin('licencia', 'asistencia.id', '=', 'licencia.asistencia_id')
             ->select(
                 'asistencia.*',
                 DB::raw("CONCAT(u_alumno.nombre, ' ', u_alumno.apellido) as alumno_nombre"),
-                DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre")
+                DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre"),
+                'licencia.id as licencia_id',
+                'licencia.estado as licencia_estado'
             );
 
         if (isset($filtros['inscripcion_id'])) {
@@ -139,14 +168,33 @@ class Asistencia
             $query->where('asistencia.fecha', '<=', $filtros['fecha_hasta']);
         }
 
+        // Filtrar solo ausentes (útil para mostrar las que necesitan licencia)
+        if (isset($filtros['solo_ausentes']) && $filtros['solo_ausentes']) {
+            $query->where('asistencia.estado', 'ausente');
+        }
+
+        // Filtrar solo las que tienen licencia
+        if (isset($filtros['con_licencia']) && $filtros['con_licencia']) {
+            $query->whereNotNull('licencia.id');
+        }
+
+        // Filtrar solo las que NO tienen licencia
+        if (isset($filtros['sin_licencia']) && $filtros['sin_licencia']) {
+            $query->whereNull('licencia.id');
+        }
+
         return $query->orderBy('asistencia.fecha', 'desc')->get();
     }
 
     public static function obtenerPorInscripcion($inscripcionId)
     {
-        return DB::table('asistencia')
-            ->where('inscripcion_id', $inscripcionId)
-            ->orderBy('fecha', 'desc')
-            ->get();
+        return self::listar(['inscripcion_id' => $inscripcionId]);
+    }
+
+    public static function tieneLicencia($id)
+    {
+        return DB::table('licencia')
+            ->where('asistencia_id', $id)
+            ->exists();
     }
 }

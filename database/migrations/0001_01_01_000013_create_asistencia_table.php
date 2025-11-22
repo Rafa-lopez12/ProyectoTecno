@@ -1,3 +1,4 @@
+// database/migrations/0001_01_01_000013_create_asistencia_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -12,7 +13,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('inscripcion_id');
             $table->date('fecha');
-            $table->string('estado', 20); // presente, ausente, tardanza, justificado
+            $table->enum('estado', ['presente', 'ausente', 'tardanza', 'justificado']);
             $table->text('observaciones')->nullable();
             $table->timestamps();
             $table->softDeletes();

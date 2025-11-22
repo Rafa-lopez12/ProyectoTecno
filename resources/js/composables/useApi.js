@@ -217,53 +217,53 @@ export function useApi() {
 
     const asistencias = {
         getAll: (params = {}) =>
-            request('GET', '/v1/asistencias', null, { params }),
+            request('GET', '/v1/asistencia', null, { params }),
         getById: id =>
-            request('GET', `/v1/asistencias/${id}`),
+            request('GET', `/v1/asistencia/${id}`),
         create: data =>
-            request('POST', '/v1/asistencias', data),
+            request('POST', '/v1/asistencia', data),
         update: (id, data) =>
-            request('PUT', `/v1/asistencias/${id}`, data),
+            request('PUT', `/v1/asistencia/${id}`, data),
         delete: id =>
-            request('DELETE', `/v1/asistencias/${id}`),
+            request('DELETE', `/v1/asistencia/${id}`),
         porInscripcion: inscripcionId =>
-            request('GET', `/v1/asistencias/inscripcion/${inscripcionId}`)
+            request('GET', `/v1/asistencia/inscripcion/${inscripcionId}`)
     };
 
     const licencias = {
         getAll: (params = {}) =>
-            request('GET', '/v1/licencias', null, { params }),
+            request('GET', '/v1/licencia', null, { params }),
         getById: id =>
-            request('GET', `/v1/licencias/${id}`),
+            request('GET', `/v1/licencia/${id}`),
         create: data =>
-            request('POST', '/v1/licencias', data),
+            request('POST', '/v1/licencia', data),
         update: (id, data) =>
-            request('PUT', `/v1/licencias/${id}`, data),
+            request('PUT', `/v1/licencia/${id}`, data),
         delete: id =>
-            request('DELETE', `/v1/licencias/${id}`),
+            request('DELETE', `/v1/licencia/${id}`),
         aprobar: id =>
-            request('POST', `/v1/licencias/${id}/aprobar`),
+            request('POST', `/v1/licencia/${id}/aprobar`),
         rechazar: id =>
-            request('POST', `/v1/licencias/${id}/rechazar`),
+            request('POST', `/v1/licencia/${id}/rechazar`),
         getReprogramaciones: id =>
-            request('GET', `/v1/licencias/${id}/reprogramaciones`)
+            request('GET', `/v1/licencia/${id}/reprogramacione`)
     };
 
     const reprogramaciones = {
         getAll: (params = {}) =>
-            request('GET', '/v1/reprogramaciones', null, { params }),
+            request('GET', '/v1/reprogramacione', null, { params }),
         getById: id =>
-            request('GET', `/v1/reprogramaciones/${id}`),
+            request('GET', `/v1/reprogramacione/${id}`),
         create: data =>
-            request('POST', '/v1/reprogramaciones', data),
+            request('POST', '/v1/reprogramacione', data),
         update: (id, data) =>
-            request('PUT', `/v1/reprogramaciones/${id}`, data),
+            request('PUT', `/v1/reprogramacione/${id}`, data),
         delete: id =>
-            request('DELETE', `/v1/reprogramaciones/${id}`),
+            request('DELETE', `/v1/reprogramacione/${id}`),
         marcarRealizada: id =>
-            request('POST', `/v1/reprogramaciones/${id}/marcar-realizada`),
+            request('POST', `/v1/reprogramacione/${id}/marcar-realizada`),
         cancelar: id =>
-            request('POST', `/v1/reprogramaciones/${id}/cancelar`)
+            request('POST', `/v1/reprogramacione/${id}/cancelar`)
     };
 
     return {

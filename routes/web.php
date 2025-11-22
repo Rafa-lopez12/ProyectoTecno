@@ -76,12 +76,22 @@ Route::prefix('inscripciones/{inscripcionId}/informes')->group(function () {
 // Asistencias
 Route::prefix('asistencias')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Asistencias/Index');
+        return Inertia::render('Asistencias/index');
     })->name('asistencias.index');
     
-    Route::get('/create', function () {
-        return Inertia::render('Asistencias/Create');
-    })->name('asistencias.create');
+    Route::get('/inscripcion/{inscripcionId}', function ($inscripcionId) {
+        return Inertia::render('Asistencias/PorInscripcion', ['inscripcionId' => $inscripcionId]);
+    })->name('asistencias.por-inscripcion');
+    
+    // NUEVA RUTA
+    Route::get('/{asistenciaId}', function ($asistenciaId) {
+        return Inertia::render('Asistencias/Detalle', ['asistenciaId' => $asistenciaId]);
+    })->name('asistencias.detalle');
+    
+    // Ruta para reprogramación (siguiente paso)
+    Route::get('/licencia/{licenciaId}/reprogramacion', function ($licenciaId) {
+        return Inertia::render('Asistencias/Reprogramacion', ['licenciaId' => $licenciaId]);
+    })->name('asistencias.reprogramacion');
 });
 
 // Ventas
