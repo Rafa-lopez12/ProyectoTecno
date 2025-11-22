@@ -12,11 +12,12 @@ use App\Http\Controllers\Api\InscripcionController;
 use App\Http\Controllers\Api\InformeClaseController;
 use App\Http\Controllers\Api\LicenciaController;
 use App\Http\Controllers\Api\ReprogramacionController;
+use App\Http\Controllers\Api\VentaController;
 use App\Models\Servicio;
 
 // Rutas públicas de autenticación
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login']); // Login unificado
 });
 
 // Rutas protegidas con Sanctum
@@ -63,7 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
 
-            // Asistencias
+        // Asistencias
         Route::apiResource('asistencia', AsistenciaController::class);
         Route::get('asistencia/inscripcion/{inscripcionId}', [AsistenciaController::class, 'porInscripcion']);
         
@@ -79,6 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('reprogramacione/{id}/marcar-realizada', [ReprogramacionController::class, 'marcarRealizada']);
         Route::post('reprogramacione/{id}/cancelar', [ReprogramacionController::class, 'cancelar']);
 
-        
+        Route::get('ventas', [VentaController::class, 'index']);
+        Route::get('ventas/reporte-mensual', [VentaController::class, 'reporteMensual']);
+        Route::get('ventas/reporte-estado', [VentaController::class, 'reportePorEstado']);
     });
+
 });

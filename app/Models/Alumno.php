@@ -4,15 +4,29 @@ namespace App\Models;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Alumno
+class Alumno extends Authenticatable
 {
+    use HasApiTokens;
+
+    protected $table = 'alumno';
+
+    protected $fillable = [
+        'user_id',
+        'ci',
+        'grado_escolar',
+        'fecha_ingreso',
+    ];
+
     /**
      * Validar datos de alumno
      */
-    public static function validar(array $datos)
+    public static function validar(array $datos, $id = null)
     {
         return Validator::make($datos, [
+            'ci' => 'required|string|max:20|unique:alumno,ci' . ($id ? ',' . $id : ''),
             'grado_escolar' => 'nullable|string|max:50',
             'fecha_ingreso' => 'required|date',
         ]);
@@ -39,6 +53,7 @@ class Alumno
 
             $alumnoId = DB::table('alumno')->insertGetId([
                 'user_id' => $userId,
+                'ci' => $datosAlumno['ci'],
                 'grado_escolar' => $datosAlumno['grado_escolar'] ?? null,
                 'fecha_ingreso' => $datosAlumno['fecha_ingreso'],
                 'created_at' => now(),
@@ -75,6 +90,10 @@ class Alumno
             if (!empty($datosAlumno)) {
                 $datosUpdate = [];
                 
+                if (isset($datosAlumno['ci'])) {
+                    $datosUpdate['ci'] = $datosAlumno['ci'];
+                }
+                
                 if (isset($datosAlumno['grado_escolar'])) {
                     $datosUpdate['grado_escolar'] = $datosAlumno['grado_escolar'];
                 }
@@ -95,7 +114,6 @@ class Alumno
         }
     }
 
-   
     public static function eliminarConUsuario($id)
     {
         $alumno = self::obtenerPorIdSimple($id);
@@ -106,7 +124,6 @@ class Alumno
 
         DB::beginTransaction();
         try {
-            // Cambiar estado del usuario a inactivo en lugar de eliminar
             DB::table('usuario')
                 ->where('id', $alumno->user_id)
                 ->update([
@@ -123,7 +140,6 @@ class Alumno
         }
     }
 
-   
     public static function obtenerPorId($id)
     {
         return DB::table('alumno')
@@ -141,15 +157,31 @@ class Alumno
             ->first();
     }
 
-    /**
-     * Obtener alumno por ID (solo tabla alumno)
-     */
     public static function obtenerPorIdSimple($id)
     {
         return DB::table('alumno')->where('id', $id)->first();
     }
 
-    
+    /**
+     * Obtener alumno por CI
+     */
+    public static function obtenerPorCI($ci)
+    {
+        return DB::table('alumno')
+            ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
+            ->where('alumno.ci', $ci)
+            ->where('usuario.estado', 'activo')
+            ->select(
+                'alumno.*',
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
+            )
+            ->first();
+    }
 
     public static function listar($filtros = [])
     {
@@ -165,7 +197,6 @@ class Alumno
                 'usuario.estado'
             );
 
-        // Por defecto solo mostrar activos, a menos que se especifique lo contrario
         if (!isset($filtros['mostrar_inactivos']) || !$filtros['mostrar_inactivos']) {
             $query->where('usuario.estado', 'activo');
         }
@@ -174,7 +205,8 @@ class Alumno
             $search = $filtros['search'];
             $query->where(function($q) use ($search) {
                 $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%");
+                  ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%")
+                  ->orWhere('alumno.ci', 'ILIKE', "%{$search}%");
             });
         }
 

@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Ruta de login (pública)
+// Ruta de login (pública) - UNIFICADA
 Route::get('/login', function () {
     return Inertia::render('Login');
 })->name('login');
@@ -13,10 +13,23 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Dashboard
+// Dashboard principal (propietario/tutor)
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->name('dashboard');
+
+// ============================================
+// RUTAS PARA ALUMNOS
+// ============================================
+Route::prefix('alumno')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Alumno/Dashboard');
+    })->name('alumno.dashboard');
+    
+    Route::get('/mis-clases', function () {
+        return Inertia::render('Alumno/MisClases');
+    })->name('alumno.mis-clases');
+});
 
 // Usuarios (Alumnos, Tutores y SubPropietarios)
 Route::prefix('usuarios')->group(function () {
@@ -83,12 +96,10 @@ Route::prefix('asistencias')->group(function () {
         return Inertia::render('Asistencias/PorInscripcion', ['inscripcionId' => $inscripcionId]);
     })->name('asistencias.por-inscripcion');
     
-    // NUEVA RUTA
     Route::get('/{asistenciaId}', function ($asistenciaId) {
         return Inertia::render('Asistencias/Detalle', ['asistenciaId' => $asistenciaId]);
     })->name('asistencias.detalle');
     
-    // Ruta para reprogramación (siguiente paso)
     Route::get('/licencia/{licenciaId}/reprogramacion', function ($licenciaId) {
         return Inertia::render('Asistencias/Reprogramacion', ['licenciaId' => $licenciaId]);
     })->name('asistencias.reprogramacion');

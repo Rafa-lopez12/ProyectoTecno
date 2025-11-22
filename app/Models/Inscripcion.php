@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Venta;
 
 class Inscripcion
 {
@@ -25,19 +26,41 @@ class Inscripcion
         if ($validator->fails()) {
             throw new \Exception('Error en datos: ' . $validator->errors()->first());
         }
-
-        $id = DB::table('inscripcion')->insertGetId([
-            'id_servicio' => $datos['id_servicio'],
-            'alumno_id' => $datos['alumno_id'],
-            'tutor_id' => $datos['tutor_id'],
-            'fecha_inscripcion' => $datos['fecha_inscripcion'] ?? now()->toDateString(),
-            'estado' => $datos['estado'] ?? 'activo',
-            'observaciones' => $datos['observaciones'] ?? null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return self::obtenerPorId($id);
+    
+        DB::beginTransaction();
+        try {
+            $id = DB::table('inscripcion')->insertGetId([
+                'id_servicio' => $datos['id_servicio'],
+                'alumno_id' => $datos['alumno_id'],
+                'tutor_id' => $datos['tutor_id'],
+                'fecha_inscripcion' => $datos['fecha_inscripcion'] ?? now()->toDateString(),
+                'estado' => $datos['estado'] ?? 'activo',
+                'observaciones' => $datos['observaciones'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+    
+            // Crear venta automáticamente
+            if (isset($datos['crear_venta']) && $datos['crear_venta']) {
+                Venta::crear([
+                    'inscripcion_id' => $id,
+                    'propietario_id' => $datos['propietario_id'] ?? null,
+                    'tipo_venta' => $datos['tipo_venta'] ?? 'contado',
+                    'monto_total' => $datos['monto_total'] ?? 0,
+                    'monto_pagado' => $datos['monto_pagado'] ?? 0,
+                    'saldo_pendiente' => ($datos['monto_total'] ?? 0) - ($datos['monto_pagado'] ?? 0),
+                    'mes_correspondiente' => $datos['mes_correspondiente'] ?? date('F Y'),
+                    'fecha_venta' => $datos['fecha_venta'] ?? now()->toDateString(),
+                    'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
+                ]);
+            }
+    
+            DB::commit();
+            return self::obtenerPorId($id);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     public static function actualizar($id, array $datos)

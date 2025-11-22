@@ -34,6 +34,7 @@ export function useApi() {
         error.value = null;
 
         try {
+            console.log({ method, url, data, ...config })
             const response = await axios({ method, url, data, ...config });
             return { success: true, data: response.data };
         } catch (err) {

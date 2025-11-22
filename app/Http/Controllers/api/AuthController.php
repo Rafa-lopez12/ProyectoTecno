@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Propietario;
 use App\Models\Tutor;
+use App\Models\Alumno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -12,12 +13,12 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Login con email y password (soporta Propietarios y Tutores)
+     * Login unificado - soporta Email+Password (Propietario/Tutor) o CI+CI (Alumno)
      */
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string',
             'password' => 'required',
         ]);
     
@@ -25,13 +26,8 @@ class AuthController extends Controller
         $propietario = Propietario::obtenerPorEmail($request->email);
         
         if ($propietario && Hash::check($request->password, $propietario->password)) {
-            // Cargar modelo Eloquent para usar HasApiTokens
             $propietarioModel = Propietario::find($propietario->id);
-            
-            // Crear token
             $token = $propietarioModel->createToken('api-token')->plainTextToken;
-        
-            // Obtener datos completos
             $propietarioCompleto = Propietario::obtenerPorId($propietario->id);
         
             return response()->json([
@@ -53,13 +49,8 @@ class AuthController extends Controller
         $tutor = Tutor::obtenerPorEmail($request->email);
         
         if ($tutor && Hash::check($request->password, $tutor->password)) {
-            // Cargar modelo Eloquent para usar HasApiTokens
             $tutorModel = Tutor::find($tutor->id);
-            
-            // Crear token
             $token = $tutorModel->createToken('api-token')->plainTextToken;
-        
-            // Obtener datos completos
             $tutorCompleto = Tutor::obtenerPorId($tutor->id);
         
             return response()->json([
@@ -74,6 +65,29 @@ class AuthController extends Controller
                     'estado' => $tutorCompleto->estado,
                     'grado' => $tutorCompleto->grado,
                     'tipo_usuario' => 'tutor',
+                ]
+            ], 200);
+        }
+        
+        // Intentar autenticar como Alumno (CI en campo email, password debe ser igual al CI)
+        $alumno = Alumno::obtenerPorCI($request->email);
+        
+        if ($alumno && $request->password === $alumno->ci) {
+            $alumnoModel = Alumno::find($alumno->id);
+            $token = $alumnoModel->createToken('api-token')->plainTextToken;
+            $alumnoCompleto = Alumno::obtenerPorId($alumno->id);
+        
+            return response()->json([
+                'message' => 'Login exitoso',
+                'token' => $token,
+                'user' => [
+                    'id' => $alumnoCompleto->id,
+                    'nombre' => $alumnoCompleto->nombre,
+                    'apellido' => $alumnoCompleto->apellido,
+                    'ci' => $alumnoCompleto->ci,
+                    'grado_escolar' => $alumnoCompleto->grado_escolar,
+                    'estado' => $alumnoCompleto->estado,
+                    'tipo_usuario' => 'alumno',
                 ]
             ], 200);
         }
@@ -115,7 +129,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
         
-        // Determinar si es Propietario o Tutor
         if ($user instanceof Propietario) {
             $userData = Propietario::obtenerPorId($user->id);
             
@@ -152,6 +165,24 @@ class AuthController extends Controller
                 ]
             ], 200);
         }
+
+        if ($user instanceof Alumno) {
+            $userData = Alumno::obtenerPorId($user->id);
+            
+            return response()->json([
+                'user' => [
+                    'id' => $userData->id,
+                    'nombre' => $userData->nombre,
+                    'apellido' => $userData->apellido,
+                    'ci' => $userData->ci,
+                    'grado_escolar' => $userData->grado_escolar,
+                    'estado' => $userData->estado,
+                    'telefono' => $userData->telefono,
+                    'direccion' => $userData->direccion,
+                    'tipo_usuario' => 'alumno',
+                ]
+            ], 200);
+        }
         
         return response()->json([
             'message' => 'Usuario no encontrado'
@@ -163,10 +194,7 @@ class AuthController extends Controller
      */
     public function refresh(Request $request)
     {
-        // Eliminar token actual
         $request->user()->currentAccessToken()->delete();
-
-        // Crear nuevo token
         $token = $request->user()->createToken('api-token')->plainTextToken;
 
         return response()->json([

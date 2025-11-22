@@ -40,13 +40,17 @@ class AlumnoController extends Controller
     public function store(Request $request)
     {
         try {
+            // Datos de usuario (tabla usuario)
             $datosUsuario = $request->only([
                 'nombre', 'apellido', 'telefono', 
                 'fecha_nacimiento', 'direccion', 'estado'
             ]);
 
+            // Datos de alumno (tabla alumno) - INCLUYE CI
             $datosAlumno = $request->only([
-                'grado_escolar', 'fecha_ingreso'
+                'ci',              // ← IMPORTANTE: Añadir CI aquí
+                'grado_escolar', 
+                'fecha_ingreso'
             ]);
 
             $alumno = Alumno::crearConUsuario($datosUsuario, $datosAlumno);
@@ -96,12 +100,15 @@ class AlumnoController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            // Datos de usuario
             $datosUsuario = $request->only([
                 'nombre', 'apellido', 'telefono', 
                 'fecha_nacimiento', 'direccion', 'estado'
             ]);
 
+            // Datos de alumno - INCLUYE CI
             $datosAlumno = $request->only([
+                'ci',              // ← IMPORTANTE: Añadir CI aquí
                 'grado_escolar'
             ]);
 

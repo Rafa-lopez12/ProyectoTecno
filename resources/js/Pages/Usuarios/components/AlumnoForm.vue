@@ -14,6 +14,7 @@ const emit = defineEmits(['saved', 'cancel']);
 const { alumnos: alumnosApi } = useApi();
 
 const form = ref({
+    ci: '',
     nombre: '',
     apellido: '',
     telefono: '',
@@ -29,6 +30,7 @@ const errors = ref({});
 
 const resetForm = () => {
     form.value = {
+        ci: '',
         nombre: '',
         apellido: '',
         telefono: '',
@@ -41,10 +43,10 @@ const resetForm = () => {
     errors.value = {};
 };
 
-// Cargar datos si está editando
 watch(() => props.alumno, (newVal) => {
     if (newVal) {
         form.value = {
+            ci: newVal.ci || '',
             nombre: newVal.nombre || '',
             apellido: newVal.apellido || '',
             telefono: newVal.telefono || '',
@@ -62,7 +64,7 @@ watch(() => props.alumno, (newVal) => {
 const handleSubmit = async () => {
     loading.value = true;
     errors.value = {};
-
+    console.log(form.value)
     const result = props.alumno 
         ? await alumnosApi.update(props.alumno.id, form.value)
         : await alumnosApi.create(form.value);
@@ -97,6 +99,23 @@ const handleCancel = () => {
         <!-- Form -->
         <form @submit.prevent="handleSubmit" class="px-4 py-5 sm:p-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <!-- CI -->
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        CI (Cédula de Identidad) <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        v-model="form.ci"
+                        type="text"
+                        required
+                        placeholder="Ej: 12345678"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                        :class="{ 'border-red-500': errors.ci }"
+                    />
+                    <p v-if="errors.ci" class="mt-1 text-sm text-red-600">{{ errors.ci[0] }}</p>
+
+                </div>
+
                 <!-- Nombre -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
