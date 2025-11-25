@@ -1,4 +1,5 @@
 <?php
+// app/Models/Inscripcion.php
 
 namespace App\Models;
 
@@ -14,6 +15,10 @@ class Inscripcion
             'id_servicio' => 'required|exists:servicio,id',
             'alumno_id' => 'required|exists:alumno,id',
             'tutor_id' => 'required|exists:tutor,id',
+            'horarios' => 'required|array|min:1',
+            'horarios.*.dia' => 'required|string',
+            'horarios.*.hora_inicio' => 'required|string',
+            'horarios.*.hora_fin' => 'required|string',
             'fecha_inscripcion' => 'nullable|date',
             'estado' => 'nullable|in:activo,retirado,finalizado',
             'observaciones' => 'nullable|string'
@@ -33,6 +38,7 @@ class Inscripcion
                 'id_servicio' => $datos['id_servicio'],
                 'alumno_id' => $datos['alumno_id'],
                 'tutor_id' => $datos['tutor_id'],
+                'horarios' => json_encode($datos['horarios']),
                 'fecha_inscripcion' => $datos['fecha_inscripcion'] ?? now()->toDateString(),
                 'estado' => $datos['estado'] ?? 'activo',
                 'observaciones' => $datos['observaciones'] ?? null,
@@ -85,6 +91,10 @@ class Inscripcion
             $datosUpdate['tutor_id'] = $datos['tutor_id'];
         }
         
+        if (isset($datos['horarios'])) {
+            $datosUpdate['horarios'] = json_encode($datos['horarios']);
+        }
+        
         if (isset($datos['fecha_inscripcion'])) {
             $datosUpdate['fecha_inscripcion'] = $datos['fecha_inscripcion'];
         }
@@ -105,6 +115,22 @@ class Inscripcion
         return self::obtenerPorId($id);
     }
 
+    public static function cambiarEstado($id, $nuevoEstado)
+    {
+        $estados = ['activo', 'retirado', 'finalizado'];
+        
+        if (!in_array($nuevoEstado, $estados)) {
+            throw new \Exception('Estado inválido');
+        }
+
+        DB::table('inscripcion')->where('id', $id)->update([
+            'estado' => $nuevoEstado,
+            'updated_at' => now()
+        ]);
+
+        return self::obtenerPorId($id);
+    }
+
     public static function eliminar($id)
     {
         $inscripcion = self::obtenerPorIdSimple($id);
@@ -119,7 +145,7 @@ class Inscripcion
 
     public static function obtenerPorId($id)
     {
-        return DB::table('inscripcion')
+        $inscripcion = DB::table('inscripcion')
             ->join('servicio', 'inscripcion.id_servicio', '=', 'servicio.id')
             ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
             ->join('tutor', 'inscripcion.tutor_id', '=', 'tutor.id')
@@ -133,6 +159,12 @@ class Inscripcion
                 DB::raw("CONCAT(u_tutor.nombre, ' ', u_tutor.apellido) as tutor_nombre")
             )
             ->first();
+
+        if ($inscripcion && $inscripcion->horarios) {
+            $inscripcion->horarios = json_decode($inscripcion->horarios, true);
+        }
+
+        return $inscripcion;
     }
 
     public static function obtenerPorIdSimple($id)
@@ -171,7 +203,16 @@ class Inscripcion
             $query->where('inscripcion.id_servicio', $filtros['servicio_id']);
         }
 
-        return $query->orderBy('inscripcion.created_at', 'desc')->get();
+        $inscripciones = $query->orderBy('inscripcion.created_at', 'desc')->get();
+
+        // Decodificar horarios JSON para cada inscripción
+        foreach ($inscripciones as $inscripcion) {
+            if ($inscripcion->horarios) {
+                $inscripcion->horarios = json_decode($inscripcion->horarios, true);
+            }
+        }
+
+        return $inscripciones;
     }
 
     public static function obtenerInformes($id)

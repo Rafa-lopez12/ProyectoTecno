@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/AuthController.php - Actualizar método login
 
 namespace App\Http\Controllers\Api;
 
@@ -6,21 +7,30 @@ use App\Http\Controllers\Controller;
 use App\Models\Propietario;
 use App\Models\Tutor;
 use App\Models\Alumno;
+use App\Models\Service\PagoFacilService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Login unificado - soporta Email+Password (Propietario/Tutor) o CI+CI (Alumno)
-     */
+    private $pagoFacilService;
+
+    public function __construct(PagoFacilService $pagoFacilService)
+    {
+        $this->pagoFacilService = $pagoFacilService;
+    }
+
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|string',
             'password' => 'required',
         ]);
+
+        // Autenticar con PagoFácil
+        $pagoFacilResult = $this->pagoFacilService->login();
+        $pagoFacilToken = $pagoFacilResult['success'] ? $pagoFacilResult['token'] : null;
     
         // Intentar autenticar como Propietario
         $propietario = Propietario::obtenerPorEmail($request->email);
@@ -33,6 +43,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Login exitoso',
                 'token' => $token,
+                'pagofacil_token' => $pagoFacilToken,
                 'user' => [
                     'id' => $propietarioCompleto->id,
                     'nombre' => $propietarioCompleto->nombre,
@@ -56,6 +67,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Login exitoso',
                 'token' => $token,
+                'pagofacil_token' => $pagoFacilToken,
                 'user' => [
                     'id' => $tutorCompleto->id,
                     'nombre' => $tutorCompleto->nombre,
@@ -69,7 +81,6 @@ class AuthController extends Controller
             ], 200);
         }
         
-        // Intentar autenticar como Alumno (CI en campo email, password debe ser igual al CI)
         $alumno = Alumno::obtenerPorCI($request->email);
         
         if ($alumno && $request->password === $alumno->ci) {
@@ -80,6 +91,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Login exitoso',
                 'token' => $token,
+                'pagofacil_token' => $pagoFacilToken,
                 'user' => [
                     'id' => $alumnoCompleto->id,
                     'nombre' => $alumnoCompleto->nombre,
@@ -98,9 +110,7 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Logout - Revocar token actual
-     */
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

@@ -49,7 +49,7 @@ const cargarTutores = async () => {
         // Cargar horarios asignados para cada tutor
         const tutoresConHorarios = await Promise.all(
             result.data.data.map(async (tutor) => {
-                const resultHorarios = await horariosApi.getHorariosDeTutor(tutor.id);
+                const resultHorarios = await horariosApi.obtenerHorariosDeTutor(tutor.id);
                 return {
                     ...tutor,
                     horariosAsignados: resultHorarios.success 

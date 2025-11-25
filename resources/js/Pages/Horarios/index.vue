@@ -41,7 +41,7 @@ const cargarDatos = async () => {
             // Para cada tutor, obtener sus horarios
             const tutoresConHorarios = await Promise.all(
                 resultTutores.data.data.map(async (tutor) => {
-                    const resultHorarios = await horarios.getHorariosDeTutor(tutor.id);
+                    const resultHorarios = await horarios.obtenerHorariosDeTutor(tutor.id);
                     
                     // Agrupar horarios por día
                     const horariosPorDia = {};

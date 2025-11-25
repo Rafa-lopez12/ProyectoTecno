@@ -1,22 +1,24 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '../../Layout/AppLayout.vue';
 import { useApi } from '../../composables/useApi';
 import { useAuth } from '../../composables/useAuth';
 
-const { inscripciones: inscripcionesApi, alumnos, tutores, servicios } = useApi();
+const { inscripciones: inscripcionesApi, alumnos, tutores, servicios, horarios: horariosApi } = useApi();
 const { user } = useAuth();
 
 const alumnosList = ref([]);
 const tutoresList = ref([]);
 const serviciosList = ref([]);
+const horariosDisponibles = ref([]);
 const loading = ref(false);
 
 const form = ref({
     alumno_id: '',
     tutor_id: '',
     id_servicio: '',
+    horarios: [],
     fecha_inscripcion: new Date().toISOString().split('T')[0],
     estado: 'activo',
     observaciones: '',
@@ -46,7 +48,53 @@ const cargarDatos = async () => {
     if (resServicios.success) serviciosList.value = resServicios.data.data;
 };
 
+// Cargar horarios cuando se selecciona un tutor
+watch(() => form.value.tutor_id, async (tutorId) => {
+    form.value.horarios = [];
+    horariosDisponibles.value = [];
+    
+    if (tutorId) {
+        const response = await horariosApi.obtenerHorariosDeTutor(tutorId);
+        if (response.success) {
+            horariosDisponibles.value = response.data.data;
+        }
+    }
+});
+
+// Toggle selección de horario
+const toggleHorario = (horario) => {
+    const horarioData = {
+        dia: horario.dia_semana,
+        hora_inicio: horario.hora_inicio,
+        hora_fin: horario.hora_fin
+    };
+    
+    const index = form.value.horarios.findIndex(h => 
+        h.dia === horarioData.dia && 
+        h.hora_inicio === horarioData.hora_inicio
+    );
+    
+    if (index > -1) {
+        form.value.horarios.splice(index, 1);
+    } else {
+        form.value.horarios.push(horarioData);
+    }
+};
+
+// Verificar si un horario está seleccionado
+const isHorarioSelected = (horario) => {
+    return form.value.horarios.some(h => 
+        h.dia === horario.dia_semana && 
+        h.hora_inicio === horario.hora_inicio
+    );
+};
+
 const handleSubmit = async () => {
+    if (form.value.horarios.length === 0) {
+        alert('Debes seleccionar al menos un horario');
+        return;
+    }
+    
     loading.value = true;
     
     const result = await inscripcionesApi.create(form.value);
@@ -54,7 +102,7 @@ const handleSubmit = async () => {
     if (result.success) {
         router.visit('/inscripciones');
     } else {
-        alert('Error al crear inscripción');
+        alert('Error al crear inscripción: ' + (result.error || 'Error desconocido'));
     }
     
     loading.value = false;
@@ -138,11 +186,67 @@ onMounted(() => {
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inscripción</label>
                                 <input v-model="form.fecha_inscripcion" type="date" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
                             </div>
+                        </div>
 
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                                <textarea v-model="form.observaciones" rows="3" placeholder="Añade notas o comentarios adicionales..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"></textarea>
+                        <!-- Horarios Disponibles -->
+                        <div v-if="form.tutor_id" class="border-t pt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                Horarios del Tutor <span class="text-red-500">*</span>
+                            </label>
+                            
+                            <div v-if="horariosDisponibles.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
+                                <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p class="mt-2 text-gray-600">Este tutor no tiene horarios asignados</p>
                             </div>
+
+                            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div
+                                    v-for="horario in horariosDisponibles"
+                                    :key="horario.id"
+                                    @click="toggleHorario(horario)"
+                                    class="border rounded-lg p-4 cursor-pointer transition-all"
+                                    :class="isHorarioSelected(horario) 
+                                        ? 'border-indigo-500 bg-indigo-50 shadow-md' 
+                                        : 'border-gray-300 hover:border-indigo-300 hover:shadow'"
+                                >
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <svg class="w-5 h-5 mr-2" :class="isHorarioSelected(horario) ? 'text-indigo-600' : 'text-gray-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span class="font-semibold" :class="isHorarioSelected(horario) ? 'text-indigo-900' : 'text-gray-900'">
+                                                    {{ horario.dia_semana }}
+                                                </span>
+                                            </div>
+                                            <div class="flex items-center text-sm" :class="isHorarioSelected(horario) ? 'text-indigo-700' : 'text-gray-600'">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {{ horario.hora_inicio }} - {{ horario.hora_fin }}
+                                            </div>
+                                        </div>
+                                        <div v-if="isHorarioSelected(horario)" class="ml-2">
+                                            <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="form.horarios.length > 0" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <p class="text-sm font-medium text-green-800">
+                                    {{ form.horarios.length }} horario(s) seleccionado(s)
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                            <textarea v-model="form.observaciones" rows="3" placeholder="Añade notas o comentarios adicionales..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"></textarea>
                         </div>
 
                         <!-- Divider -->

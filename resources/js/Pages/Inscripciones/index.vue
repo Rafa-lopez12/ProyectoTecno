@@ -15,10 +15,14 @@ const { inscripciones: inscripcionesApi } = useApi();
 const inscripciones = ref([]);
 const loading = ref(false);
 
-
 // Filtros
 const filtroEstado = ref(props.filtros?.estado || '');
 const filtroServicio = ref(props.filtros?.servicio_id || '');
+
+// Modal cambio de estado
+const showEstadoModal = ref(false);
+const inscripcionToChangeEstado = ref(null);
+const nuevoEstado = ref('');
 
 const esTutor = computed(() => props.rol === 'tutor');
 
@@ -57,8 +61,6 @@ const limpiarFiltros = () => {
     cargarInscripciones();
 };
 
-
-
 // Obtener clase CSS para estado
 const getEstadoClass = (estado) => {
     const classes = {
@@ -82,6 +84,42 @@ const getEstadoTexto = (estado) => {
 // Ver informes
 const verInformes = (inscripcionId) => {
     router.visit(`/inscripciones/${inscripcionId}/informes`);
+};
+
+// Abrir modal de cambio de estado
+const abrirModalEstado = (inscripcion) => {
+    inscripcionToChangeEstado.value = inscripcion;
+    nuevoEstado.value = inscripcion.estado;
+    showEstadoModal.value = true;
+};
+
+// Cambiar estado
+const cambiarEstado = async () => {
+    if (!inscripcionToChangeEstado.value || !nuevoEstado.value) return;
+
+    loading.value = true;
+    const response = await inscripcionesApi.cambiarEstado(
+        inscripcionToChangeEstado.value.id,
+        { estado: nuevoEstado.value }
+    );
+
+    if (response.success) {
+        await cargarInscripciones();
+        showEstadoModal.value = false;
+        inscripcionToChangeEstado.value = null;
+        nuevoEstado.value = '';
+    } else {
+        alert('Error al cambiar estado: ' + response.error);
+    }
+
+    loading.value = false;
+};
+
+// Formatear horarios
+const formatearHorarios = (horarios) => {
+    if (!horarios || horarios.length === 0) return 'Sin horarios';
+    
+    return horarios.map(h => `${h.dia}: ${h.hora_inicio}-${h.hora_fin}`).join(', ');
 };
 
 onMounted(() => {
@@ -191,6 +229,9 @@ onMounted(() => {
                                     Servicio
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Horarios
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Fecha Inscripción
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -218,6 +259,11 @@ onMounted(() => {
                                         {{ inscripcion.servicio_nombre }}
                                     </div>
                                 </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900 max-w-xs">
+                                        {{ formatearHorarios(inscripcion.horarios) }}
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">
                                         {{ new Date(inscripcion.fecha_inscripcion).toLocaleDateString('es-ES') }}
@@ -241,6 +287,18 @@ onMounted(() => {
                                             </svg>
                                         </button>
 
+                                        <!-- Cambiar estado (solo propietario) -->
+                                        <button
+                                            v-if="!esTutor"
+                                            @click="abrirModalEstado(inscripcion)"
+                                            class="text-purple-600 hover:text-purple-900"
+                                            title="Cambiar estado"
+                                        >
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </button>
+
                                         <!-- Editar (solo propietario) -->
                                         <button
                                             v-if="!esTutor"
@@ -252,7 +310,6 @@ onMounted(() => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
                                         </button>
-
                                     </div>
                                 </td>
                             </tr>
@@ -262,27 +319,50 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Modal de confirmación de eliminación -->
-        <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <!-- Modal cambiar estado -->
+        <div v-if="showEstadoModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmar Eliminación</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    ¿Estás seguro de que deseas eliminar esta inscripción? Esta acción no se puede deshacer.
-                </p>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Cambiar Estado de Inscripción</h3>
+                
+                <div class="mb-6">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Alumno: <strong>{{ inscripcionToChangeEstado?.alumno_nombre }}</strong>
+                    </p>
+                    
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Nuevo Estado
+                    </label>
+                    <select
+                        v-model="nuevoEstado"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="activo">Activo</option>
+                        <option value="retirado">Retirado</option>
+                        <option value="finalizado">Finalizado</option>
+                    </select>
+
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <strong>Nota:</strong> Cambiar a "Finalizado" indica que el mes ha terminado. 
+                            Puedes volver a "Activo" para renovar por otro mes.
+                        </p>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-3">
                     <button
-                        @click="showDeleteModal = false"
+                        @click="showEstadoModal = false"
                         class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                         :disabled="loading"
                     >
                         Cancelar
                     </button>
                     <button
-                        @click="eliminarInscripcion"
-                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                        :disabled="loading"
+                        @click="cambiarEstado"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                        :disabled="loading || !nuevoEstado"
                     >
-                        {{ loading ? 'Eliminando...' : 'Eliminar' }}
+                        {{ loading ? 'Guardando...' : 'Guardar' }}
                     </button>
                 </div>
             </div>

@@ -1,4 +1,5 @@
 <?php
+// routes/api.php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -13,12 +14,16 @@ use App\Http\Controllers\Api\InformeClaseController;
 use App\Http\Controllers\Api\LicenciaController;
 use App\Http\Controllers\Api\ReprogramacionController;
 use App\Http\Controllers\Api\VentaController;
+use App\Http\Controllers\Api\PagoController;
 use App\Models\Servicio;
 
 // Rutas públicas de autenticación
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']); // Login unificado
 });
+
+// Callback público de PagoFácil
+Route::post('v1/pago/callback', [PagoController::class, 'callback']);
 
 // Rutas protegidas con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -51,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Inscripciones
         Route::apiResource('inscripcion', InscripcionController::class);
+        Route::post('inscripcion/{id}/cambiar-estado', [InscripcionController::class, 'cambiarEstado']);
         Route::get('inscripcion/{id}/informes', [InscripcionController::class, 'informes']);
         
         // Informes de Clase
@@ -80,9 +86,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('reprogramacione/{id}/marcar-realizada', [ReprogramacionController::class, 'marcarRealizada']);
         Route::post('reprogramacione/{id}/cancelar', [ReprogramacionController::class, 'cancelar']);
 
-        Route::get('ventas', [VentaController::class, 'index']);
-        Route::get('ventas/reporte-mensual', [VentaController::class, 'reporteMensual']);
-        Route::get('ventas/reporte-estado', [VentaController::class, 'reportePorEstado']);
+        // Ventas
+        Route::get('venta', [VentaController::class, 'index']);
+        Route::get('venta/reporte-mensual', [VentaController::class, 'reporteMensual']);
+        Route::get('venta/reporte-estado', [VentaController::class, 'reportePorEstado']);
+        Route::get('venta/mis-ventas', [VentaController::class, 'misVentas']); // Para alumnos
+        Route::get('venta/{id}', [VentaController::class, 'show']);
+        
+        // Pagos
+        Route::apiResource('pago', PagoController::class);
+        Route::post('pago/generar-qr', [PagoController::class, 'generarQR']);
+      
+        Route::get('pago/{id}/consultar-estado', [PagoController::class, 'consultarEstado']);
+        Route::get('pago/venta/{ventaId}', [PagoController::class, 'porVenta']);
+        Route::get('pago/metodos-habilitados', [PagoController::class, 'metodosHabilitados']);
+        
     });
-
 });

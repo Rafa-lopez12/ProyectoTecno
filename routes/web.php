@@ -23,8 +23,8 @@ Route::get('/dashboard', function () {
 // ============================================
 Route::prefix('alumno')->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Alumno/Dashboard');
-    })->name('alumno.dashboard');
+        return Inertia::render('Alumno/MisVentas');
+    })->name('alumno.mis-ventas');
     
     Route::get('/mis-clases', function () {
         return Inertia::render('Alumno/MisClases');
@@ -108,7 +108,7 @@ Route::prefix('asistencias')->group(function () {
 // Ventas
 Route::prefix('ventas')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Ventas/Index');
+        return Inertia::render('Ventas/index');
     })->name('ventas.index');
     
     Route::get('/create', function () {
@@ -118,6 +118,12 @@ Route::prefix('ventas')->group(function () {
     Route::get('/{id}/edit', function ($id) {
         return Inertia::render('Ventas/Edit', ['id' => $id]);
     })->name('ventas.edit');
+
+    Route::get('/{ventaId}/pagos', function ($ventaId) {
+        return Inertia::render('Pagos/PorVenta', [
+            'ventaId' => $ventaId
+        ]);
+    })->name('ventas.pagos');
 });
 
 // Propietarios

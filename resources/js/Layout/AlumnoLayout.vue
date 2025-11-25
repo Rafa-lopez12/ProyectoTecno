@@ -1,3 +1,4 @@
+<!-- resources/js/Layout/AlumnoLayout.vue -->
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
@@ -9,7 +10,7 @@ const showMobileMenu = ref(false);
 onMounted(async () => {
     const isAuth = await checkAuth();
     if (!isAuth) {
-        router.visit('/login-alumno');
+        router.visit('/login');
     }
 });
 
@@ -26,7 +27,7 @@ const handleLogout = async () => {
                     <!-- Logo y Nombre -->
                     <div class="flex items-center">
                         <div class="shrink-0 flex items-center">
-                            <Link :href="route('alumno.dashboard')" class="text-lg sm:text-xl font-bold text-indigo-600">
+                            <Link :href="route('alumno.mis-ventas')" class="text-lg sm:text-xl font-bold text-indigo-600">
                                 Mi Portal Estudiantil
                             </Link>
                         </div>
@@ -34,11 +35,11 @@ const handleLogout = async () => {
                         <!-- Desktop Navigation -->
                         <div class="hidden md:flex space-x-4 lg:space-x-8 ml-6 lg:ml-10">
                             <Link 
-                                :href="route('alumno.dashboard')" 
+                                :href="route('alumno.mis-ventas')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/alumno/dashboard') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/alumno/mis-ventas') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             >
-                                Inicio
+                                Mis Ventas
                             </Link>
                             <Link 
                                 :href="route('alumno.mis-clases')" 
@@ -86,11 +87,11 @@ const handleLogout = async () => {
                 <div v-show="showMobileMenu" class="md:hidden pb-4">
                     <div class="space-y-1">
                         <Link 
-                            :href="route('alumno.dashboard')" 
+                            :href="route('alumno.mis-ventas')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/alumno/dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/alumno/mis-ventas') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
                         >
-                            Inicio
+                            Mis Ventas
                         </Link>
                         <Link 
                             :href="route('alumno.mis-clases')" 

@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/InscripcionController.php
 
 namespace App\Http\Controllers\Api;
 
@@ -43,8 +44,11 @@ class InscripcionController extends Controller
     {
         try {
             $datos = $request->only([
-                'id_servicio', 'alumno_id', 'tutor_id',
-                'fecha_inscripcion', 'estado', 'observaciones'
+                'id_servicio', 'alumno_id', 'tutor_id', 'horarios',
+                'fecha_inscripcion', 'estado', 'observaciones',
+                'crear_venta', 'propietario_id', 'tipo_venta',
+                'monto_total', 'monto_pagado', 'mes_correspondiente',
+                'fecha_venta', 'fecha_vencimiento'
             ]);
 
             $inscripcion = Inscripcion::crear($datos);
@@ -89,7 +93,7 @@ class InscripcionController extends Controller
     {
         try {
             $datos = $request->only([
-                'id_servicio', 'alumno_id', 'tutor_id',
+                'id_servicio', 'alumno_id', 'tutor_id', 'horarios',
                 'fecha_inscripcion', 'estado', 'observaciones'
             ]);
 
@@ -103,6 +107,32 @@ class InscripcionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar inscripción',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function cambiarEstado(Request $request, $id)
+    {
+        try {
+            $nuevoEstado = $request->input('estado');
+
+            if (!$nuevoEstado) {
+                return response()->json([
+                    'message' => 'El estado es requerido'
+                ], 422);
+            }
+
+            $inscripcion = Inscripcion::cambiarEstado($id, $nuevoEstado);
+
+            return response()->json([
+                'message' => 'Estado actualizado exitosamente',
+                'data' => $inscripcion
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al cambiar estado',
                 'error' => $e->getMessage()
             ], 500);
         }

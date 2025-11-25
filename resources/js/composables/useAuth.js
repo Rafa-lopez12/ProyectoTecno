@@ -1,3 +1,5 @@
+// resources/js/composables/useAuth.js - Actualizar para guardar token de PagoFácil
+
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useApi } from './useApi';
@@ -5,6 +7,7 @@ import axios from 'axios';
 
 const token = ref(localStorage.getItem('token'));
 const user = ref(JSON.parse(localStorage.getItem('user') || 'null'));
+const pagoFacilToken = ref(localStorage.getItem('pagofacil_token'));
 
 export function useAuth() {
     const { auth: authApi } = useApi();
@@ -16,9 +19,13 @@ export function useAuth() {
         if (result.success) {
             token.value = result.data.token;
             user.value = result.data.user;
+            pagoFacilToken.value = result.data.pagofacil_token;
 
             localStorage.setItem('token', result.data.token);
             localStorage.setItem('user', JSON.stringify(result.data.user));
+            if (result.data.pagofacil_token) {
+                localStorage.setItem('pagofacil_token', result.data.pagofacil_token);
+            }
 
             // Configurar token en axios para futuras peticiones
             axios.defaults.headers.common['Authorization'] = `Bearer ${result.data.token}`;
@@ -42,8 +49,10 @@ export function useAuth() {
         } finally {
             token.value = null;
             user.value = null;
+            pagoFacilToken.value = null;
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            localStorage.removeItem('pagofacil_token');
             delete axios.defaults.headers.common['Authorization'];
             router.visit('/login');
         }
@@ -74,6 +83,7 @@ export function useAuth() {
     return {
         token,
         user,
+        pagoFacilToken,
         isAuthenticated,
         login,
         logout,

@@ -1,3 +1,5 @@
+// resources/js/composables/useApi.js - Actualizar
+
 import axios from 'axios';
 import { ref } from 'vue';
 
@@ -19,6 +21,7 @@ axios.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            localStorage.removeItem('pagofacil_token');
             window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -34,7 +37,6 @@ export function useApi() {
         error.value = null;
 
         try {
-            console.log({ method, url, data, ...config })
             const response = await axios({ method, url, data, ...config });
             return { success: true, data: response.data };
         } catch (err) {
@@ -163,6 +165,9 @@ export function useApi() {
 
         getTutores: horarioId =>
             request('GET', `/v1/horario/${horarioId}/tutores`),
+        
+        obtenerHorariosDeTutor: tutorId =>
+            request('GET', `/v1/tutores/${tutorId}/horario`)
     };
 
     // ============================================
@@ -180,6 +185,9 @@ export function useApi() {
 
         update: (id, data) =>
             request('PUT', `/v1/inscripcion/${id}`, data),
+
+        cambiarEstado: (id, data) =>
+            request('POST', `/v1/inscripcion/${id}/cambiar-estado`, data),
 
         delete: id =>
             request('DELETE', `/v1/inscripcion/${id}`),
@@ -216,6 +224,9 @@ export function useApi() {
             request('GET', '/v1/servicios')
     };
 
+    // ============================================
+    // ASISTENCIAS
+    // ============================================
     const asistencias = {
         getAll: (params = {}) =>
             request('GET', '/v1/asistencia', null, { params }),
@@ -231,6 +242,9 @@ export function useApi() {
             request('GET', `/v1/asistencia/inscripcion/${inscripcionId}`)
     };
 
+    // ============================================
+    // LICENCIAS
+    // ============================================
     const licencias = {
         getAll: (params = {}) =>
             request('GET', '/v1/licencia', null, { params }),
@@ -250,6 +264,9 @@ export function useApi() {
             request('GET', `/v1/licencia/${id}/reprogramacione`)
     };
 
+    // ============================================
+    // REPROGRAMACIONES
+    // ============================================
     const reprogramaciones = {
         getAll: (params = {}) =>
             request('GET', '/v1/reprogramacione', null, { params }),
@@ -267,6 +284,52 @@ export function useApi() {
             request('POST', `/v1/reprogramacione/${id}/cancelar`)
     };
 
+    // ============================================
+    // VENTAS
+    // ============================================
+    const ventas = {
+        getAll: (params = {}) =>
+            request('GET', '/v1/venta', null, { params }),
+
+        misVentas: () =>
+            request('GET', '/v1/venta/mis-ventas'),
+
+        reporteMensual: (params = {}) =>
+            request('GET', '/v1/venta/reporte-mensual', null, { params }),
+
+        reportePorEstado: () =>
+            request('GET', '/v1/venta/reporte-estado'),
+
+        getById: id =>
+            request('GET', `/v1/venta/${id}`),
+    };
+
+    // ============================================
+    // PAGOS
+    // ============================================
+    const pagos = {
+        getAll: (params = {}) =>
+            request('GET', '/v1/pago', null, { params }),
+
+        getById: id =>
+            request('GET', `/v1/pago/${id}`),
+
+        create: data =>
+            request('POST', '/v1/pago', data),
+
+        generarQR: data =>
+            request('POST', '/v1/pago/generar-qr', data),
+
+        consultarEstado: id =>
+            request('GET', `/v1/pago/${id}/consultar-estado`),
+
+        porVenta: ventaId =>
+            request('GET', `/v1/pago/venta/${ventaId}`),
+
+        metodosHabilitados: () =>
+            request('GET', '/v1/pago/metodos-habilitados')
+    };
+
     return {
         loading,
         error,
@@ -280,6 +343,8 @@ export function useApi() {
         servicios,
         asistencias,
         licencias,
-        reprogramaciones
+        reprogramaciones,
+        ventas,
+        pagos
     };
 }

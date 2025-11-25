@@ -1,4 +1,5 @@
 <?php
+// app/Models/Alumno.php - Actualizar
 
 namespace App\Models;
 
@@ -16,9 +17,26 @@ class Alumno extends Authenticatable
     protected $fillable = [
         'user_id',
         'ci',
+        'codigo',
         'grado_escolar',
         'fecha_ingreso',
     ];
+
+    /**
+     * Generar código único para el alumno
+     */
+    private static function generarCodigo()
+    {
+        do {
+            // Generar código: ALU + 5 dígitos aleatorios
+            $codigo = 'ALU' . str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
+            
+            // Verificar que no exista
+            $existe = DB::table('alumno')->where('codigo', $codigo)->exists();
+        } while ($existe);
+
+        return $codigo;
+    }
 
     /**
      * Validar datos de alumno
@@ -51,9 +69,13 @@ class Alumno extends Authenticatable
         try {
             $userId = User::crear($datosUsuario);
 
+            // Generar código único
+            $codigo = self::generarCodigo();
+
             $alumnoId = DB::table('alumno')->insertGetId([
                 'user_id' => $userId,
                 'ci' => $datosAlumno['ci'],
+                'codigo' => $codigo,
                 'grado_escolar' => $datosAlumno['grado_escolar'] ?? null,
                 'fecha_ingreso' => $datosAlumno['fecha_ingreso'],
                 'created_at' => now(),
@@ -183,6 +205,27 @@ class Alumno extends Authenticatable
             ->first();
     }
 
+    /**
+     * Obtener alumno por código
+     */
+    public static function obtenerPorCodigo($codigo)
+    {
+        return DB::table('alumno')
+            ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
+            ->where('alumno.codigo', $codigo)
+            ->where('usuario.estado', 'activo')
+            ->select(
+                'alumno.*',
+                'usuario.nombre',
+                'usuario.apellido',
+                'usuario.telefono',
+                'usuario.fecha_nacimiento',
+                'usuario.direccion',
+                'usuario.estado'
+            )
+            ->first();
+    }
+
     public static function listar($filtros = [])
     {
         $query = DB::table('alumno')
@@ -206,7 +249,8 @@ class Alumno extends Authenticatable
             $query->where(function($q) use ($search) {
                 $q->where('usuario.nombre', 'ILIKE', "%{$search}%")
                   ->orWhere('usuario.apellido', 'ILIKE', "%{$search}%")
-                  ->orWhere('alumno.ci', 'ILIKE', "%{$search}%");
+                  ->orWhere('alumno.ci', 'ILIKE', "%{$search}%")
+                  ->orWhere('alumno.codigo', 'ILIKE', "%{$search}%");
             });
         }
 
