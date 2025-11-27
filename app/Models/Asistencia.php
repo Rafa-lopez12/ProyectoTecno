@@ -197,4 +197,20 @@ class Asistencia
             ->where('asistencia_id', $id)
             ->exists();
     }
+
+
+    public static function obtenerInforme($asistenciaId)
+    {
+        return DB::table('informe_clase')
+            ->where('asistencia_id', $asistenciaId)
+            ->first();
+    }
+
+    public static function tieneInforme($asistenciaId)
+    {
+        return DB::table('informe_clase')
+            ->where('asistencia_id', $asistenciaId)
+            ->exists();
+    }
 }
+

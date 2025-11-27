@@ -68,23 +68,23 @@ Route::prefix('inscripciones')->group(function () {
     })->name('inscripciones.edit');
 });
 
-Route::prefix('inscripciones/{inscripcionId}/informes')->group(function () {
-    Route::get('/', function ($inscripcionId) {
-        return Inertia::render('Informes/index', ['inscripcionId' => $inscripcionId]);
-    })->name('inscripciones.informes.index');
+// Route::prefix('inscripciones/{inscripcionId}/informes')->group(function () {
+//     Route::get('/', function ($inscripcionId) {
+//         return Inertia::render('Informes/index', ['inscripcionId' => $inscripcionId]);
+//     })->name('inscripciones.informes.index');
     
-    Route::get('/create', function ($inscripcionId) {
-        return Inertia::render('Informes/Create', ['inscripcionId' => $inscripcionId]);
-    })->name('inscripciones.informes.create');
+//     Route::get('/create', function ($inscripcionId) {
+//         return Inertia::render('Informes/Create', ['inscripcionId' => $inscripcionId]);
+//     })->name('inscripciones.informes.create');
     
-    Route::get('/{id}', function ($inscripcionId, $id) {
-        return Inertia::render('Informes/Show', ['inscripcionId' => $inscripcionId, 'id' => $id]);
-    })->name('inscripciones.informes.show');
+//     Route::get('/{id}', function ($inscripcionId, $id) {
+//         return Inertia::render('Informes/Show', ['inscripcionId' => $inscripcionId, 'id' => $id]);
+//     })->name('inscripciones.informes.show');
     
-    Route::get('/{id}/edit', function ($inscripcionId, $id) {
-        return Inertia::render('Informes/Edit', ['inscripcionId' => $inscripcionId, 'id' => $id]);
-    })->name('inscripciones.informes.edit');
-});
+//     Route::get('/{id}/edit', function ($inscripcionId, $id) {
+//         return Inertia::render('Informes/Edit', ['inscripcionId' => $inscripcionId, 'id' => $id]);
+//     })->name('inscripciones.informes.edit');
+// });
 
 // Asistencias
 Route::prefix('asistencias')->group(function () {
@@ -103,6 +103,11 @@ Route::prefix('asistencias')->group(function () {
     Route::get('/licencia/{licenciaId}/reprogramacion', function ($licenciaId) {
         return Inertia::render('Asistencias/Reprogramacion', ['licenciaId' => $licenciaId]);
     })->name('asistencias.reprogramacion');
+    
+    // NUEVA: Informe de una asistencia
+    Route::get('/{asistenciaId}/informe', function ($asistenciaId) {
+        return Inertia::render('Informes/index', ['asistenciaId' => $asistenciaId]);
+    })->name('asistencias.informe');
 });
 
 // Ventas

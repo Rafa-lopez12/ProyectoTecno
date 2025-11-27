@@ -66,7 +66,7 @@ class Propietario extends Authenticatable
                 'user_id' => $userId,
                 'email' => $datosPropietario['email'],
                 'password' => Hash::make($datosPropietario['password']),
-                'rol' => $datosPropietario['rol'] ?? null,
+                'rol' => $datosPropietario['rol'] ?? 'subPropietario',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

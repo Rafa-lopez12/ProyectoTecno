@@ -155,20 +155,4 @@ class InscripcionController extends Controller
         }
     }
 
-    public function informes($id)
-    {
-        try {
-            $informes = Inscripcion::obtenerInformes($id);
-
-            return response()->json([
-                'data' => $informes
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener informes',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 }

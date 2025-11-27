@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useApi } from '../../../composables/useApi';
+import { useFormValidation } from '../../../composables/useFormValidation';
 
 const props = defineProps({
     tutor: {
@@ -12,6 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'cancel']);
 
 const { tutores: tutoresApi } = useApi();
+const { errors, rules, validateField, validateForm, clearErrors, setBackendErrors } = useFormValidation();
 
 const form = ref({
     nombre: '',
@@ -26,8 +28,43 @@ const form = ref({
     estado: 'activo'
 });
 
+const validationRules = {
+    nombre: [
+        (value) => rules.required(value, 'nombre'),
+        (value) => rules.string(value, 'nomobre'),
+        (value) => rules.noSpecialChars(value, 'nombre'),
+        (value) => rules.onlyLetters(value, 'nombre'),
+    ],
+    apellido: [
+        (value) => rules.required(value, 'apellido'),
+        (value) => rules.string(value, 'apellido'),
+        (value) => rules.noSpecialChars(value, 'apellido'),
+        (value) => rules.onlyLetters(value, 'apellido'),
+    ],
+    telefono: [
+        (value) => rules.required(value, 'telefono'),
+        (value) => rules.numeric(value, 'telefono'),
+        (value) => rules.noSpecialChars(value, 'telefono'),
+        (value) => rules.onlyNumbers(value, 'telefono'),
+    ],
+    email: [
+        (value) => rules.email(value, 'email'),
+    ],
+    fecha_nacimiento: [
+        (value) => rules.required(value, 'fecha de nacimiento'),
+        (value) => value ? rules.date(value, 'fecha de nacimiento') : null,
+    ],
+    direccion: [
+        (value) => rules.required(value, 'direccion'),
+    ],
+    grado: [
+       (value) => rules.required(value, 'grado'),
+       (value) => rules.alphanumeric(value, 'grado'),
+    ],
+};
+
 const loading = ref(false);
-const errors = ref({});
+
 
 const resetForm = () => {
     form.value = {
@@ -65,9 +102,24 @@ watch(() => props.tutor, (newVal) => {
     }
 }, { immediate: true });
 
+const handleBlur = (fieldName) => {
+    if (validationRules[fieldName]) {
+        validateField(fieldName, form.value[fieldName], validationRules[fieldName]);
+    }
+};
+
+const handleInput = (fieldName) => {
+    if (errors.value[fieldName]) {
+        delete errors.value[fieldName];
+    }
+};
+
 const handleSubmit = async () => {
+    if (!validateForm(form.value, validationRules)) {
+        return;
+    }
+    
     loading.value = true;
-    errors.value = {};
 
     const result = props.tutor 
         ? await tutoresApi.update(props.tutor.id, form.value)
@@ -111,11 +163,18 @@ const handleCancel = () => {
                     <input
                         v-model="form.nombre"
                         type="text"
+                        @blur="handleBlur('nombre')"
+                        @input="handleInput('nombre')"
                         required
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         :class="{ 'border-red-500': errors.nombre }"
                     />
-                    <p v-if="errors.nombre" class="mt-1 text-sm text-red-600">{{ errors.nombre[0] }}</p>
+                    <p v-if="errors.nombre" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.nombre }}
+                    </p>
                 </div>
 
                 <!-- Apellido -->
@@ -126,11 +185,18 @@ const handleCancel = () => {
                     <input
                         v-model="form.apellido"
                         type="text"
+                        @blur="handleBlur('apellido')"
+                        @input="handleInput('apellido')"
                         required
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         :class="{ 'border-red-500': errors.apellido }"
                     />
-                    <p v-if="errors.apellido" class="mt-1 text-sm text-red-600">{{ errors.apellido[0] }}</p>
+                    <p v-if="errors.apellido" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.apellido }}
+                    </p>
                 </div>
 
                 <!-- Email -->
@@ -141,11 +207,18 @@ const handleCancel = () => {
                     <input
                         v-model="form.email"
                         type="email"
+                        @blur="handleBlur('email')"
+                        @input="handleInput('email')"
                         required
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         :class="{ 'border-red-500': errors.email }"
                     />
-                    <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email[0] }}</p>
+                    <p v-if="errors.email" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.email }}
+                    </p>
                 </div>
 
                 <!-- Password -->
@@ -173,8 +246,16 @@ const handleCancel = () => {
                     <input
                         v-model="form.telefono"
                         type="text"
+                        @blur="handleBlur('telefono')"
+                        @input="handleInput('telefono')"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     />
+                    <p v-if="errors.telefono" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.telefono }}
+                    </p>
                 </div>
 
                 <!-- Fecha de Nacimiento -->
@@ -185,24 +266,17 @@ const handleCancel = () => {
                     <input
                         v-model="form.fecha_nacimiento"
                         type="date"
+                        @blur="handleBlur('fecha_nacimiento')"
+                        @input="handleInput('fecha_nacimiento')"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     />
+                    <p v-if="errors.fecha_nacimiento" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.fecha_nacimiento }}
+                    </p>
                 </div>
-
-                <!-- Rol -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Tipo de Tutor
-                    </label>
-                    <select
-                        v-model="form.rol"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                        <option value="tutor">Tutor</option>
-
-                    </select>
-                </div>
-
                 <!-- Grado -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -211,9 +285,17 @@ const handleCancel = () => {
                     <input
                         v-model="form.grado"
                         type="text"
+                        @blur="handleBlur('grado')"
+                        @input="handleInput('grado')"
                         placeholder="ej: Licenciatura en Educación"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     />
+                    <p v-if="errors.grado" class="mt-1 text-sm text-red-600 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ errors.grado }}
+                    </p>
                 </div>
 
 
@@ -227,6 +309,7 @@ const handleCancel = () => {
                         rows="2"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     ></textarea>
+                    
                 </div>
             </div>
 

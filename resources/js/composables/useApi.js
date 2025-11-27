@@ -201,19 +201,22 @@ export function useApi() {
     // ============================================
     const informesClase = {
         getAll: (params = {}) =>
-            request('GET', '/v1/informes-clase', null, { params }),
+            request('GET', '/v1/informe-clase', null, { params }),
 
         getById: id =>
-            request('GET', `/v1/informes-clase/${id}`),
+            request('GET', `/v1/informe-clase/${id}`),
 
         create: data =>
-            request('POST', '/v1/informes-clase', data),
+            request('POST', '/v1/informe-clase', data),
+
+        porAsistencia: (asistenciaId) => 
+            request('GET', `/v1/informe-clase/asistencia/${asistenciaId}`),
 
         update: (id, data) =>
-            request('PUT', `/v1/informes-clase/${id}`, data),
+            request('PUT', `/v1/informe-clase/${id}`, data),
 
         delete: id =>
-            request('DELETE', `/v1/informes-clase/${id}`)
+            request('DELETE', `/v1/informe-clase/${id}`)
     };
 
     // ============================================

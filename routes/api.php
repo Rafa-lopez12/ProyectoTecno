@@ -60,7 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('inscripcion/{id}/informes', [InscripcionController::class, 'informes']);
         
         // Informes de Clase
-        Route::apiResource('informes-clase', InformeClaseController::class);
+        Route::apiResource('informe-clase', InformeClaseController::class);
+        Route::get('informe-clase/asistencia/{asistenciaId}', [InformeClaseController::class, 'porAsistencia']);
         
         // Servicios
         Route::get('servicios', function () {

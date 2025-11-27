@@ -1,13 +1,16 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useApi } from '../../../composables/useApi';
+import { useFormValidation } from '../../../composables/useFormValidation';
+
+
 
 const props = defineProps({
     show: {
         type: Boolean,
         required: true
     },
-    inscripcionId: {
+    asistenciaId: { 
         type: [String, Number],
         required: true
     },
@@ -93,7 +96,7 @@ const guardarInforme = async () => {
     errors.value = {};
 
     const datos = {
-        inscripcion_id: props.inscripcionId,
+        asistencia_id: props.asistenciaId,
         ...form.value
     };
 
@@ -113,6 +116,7 @@ const guardarInforme = async () => {
     if (isEditMode.value) {
         response = await informesClase.update(props.informe.id, datos);
     } else {
+        console.log(datos)
         response = await informesClase.create(datos);
     }
 

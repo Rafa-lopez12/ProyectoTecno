@@ -3,13 +3,16 @@ import { ref, onMounted, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '../../Layout/AppLayout.vue';
 import { useApi } from '../../composables/useApi';
+import { useAuth } from '../../composables/useAuth';
 
+const { user, logout, checkAuth } = useAuth();
 const props = defineProps({
     asistenciaId: [String, Number]
 });
 
-const { asistencias: asistenciasApi, licencias: licenciasApi } = useApi();
+const { asistencias: asistenciasApi, licencias: licenciasApi, informesClase: informesClaseApi } = useApi();
 
+const informe = ref(null);
 const asistencia = ref(null);
 const licencia = ref(null);
 const loading = ref(false);
@@ -46,12 +49,26 @@ const cargarDatos = async () => {
                     licencia.value = respLicencia.data.data;
                 }
             }
+            
+            // Cargar informe si existe
+            const respInforme = await informesClaseApi.porAsistencia(props.asistenciaId);
+            if (respInforme.success && respInforme.data.data) {
+                informe.value = respInforme.data.data;
+            }
         }
     } catch (error) {
         console.error("Error al cargar datos:", error);
     } finally {
         loading.value = false;
     }
+};
+
+const crearInforme = () => {
+    router.visit(`/asistencias/${props.asistenciaId}/informe/create`);
+};
+
+const verInforme = () => {
+    router.visit(`/asistencias/${props.asistenciaId}/informe`);
 };
 
 onMounted(() => {
@@ -400,7 +417,7 @@ const volver = () => {
                                         {{ getLicenciaEstadoTexto(licencia.estado) }}
                                     </span>
                                 </div>
-                                <div v-if="licencia.estado === 'pendiente'" class="flex space-x-2">
+                                <div v-if="licencia.estado === 'pendiente' && user?.rol !== 'tutor'" class="flex space-x-2">
                                     <button
                                         @click="aprobarLicencia"
                                         class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
@@ -485,6 +502,19 @@ const volver = () => {
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <button
+                        @click="router.visit(`/asistencias/${asistenciaId}/informe`)"
+                        class="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                    >
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Ver/Gestionar Informe de Clase
+                    </button>
+                </div>
+ 
             </template>
         </div>
 

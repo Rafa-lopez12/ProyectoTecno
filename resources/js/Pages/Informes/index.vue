@@ -4,58 +4,37 @@ import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '../../Layout/AppLayout.vue';
 import { useApi } from '../../composables/useApi';
 import InformeFormDialog from './components/InformeFormDialog.vue';
-import InformeDetailDialog from './components/InformeDetailDialog.vue';
 
 const props = defineProps({
-    inscripcionId: {
+    asistenciaId: {
         type: [String, Number],
         required: true
     }
 });
 
-const { informesClase, inscripciones } = useApi();
-const informes = ref([]);
-const inscripcion = ref(null);
+const { informesClase, asistencias } = useApi();
+const asistencia = ref(null);
+const informe = ref(null);
 const loading = ref(false);
 
-// Filtros
-const filtroFechaDesde = ref('');
-const filtroFechaHasta = ref('');
-const filtroEstado = ref('');
-
-// Modal de eliminación
-const showDeleteModal = ref(false);
-const informeToDelete = ref(null);
-
-// Dialogs
+// Modal
 const showFormDialog = ref(false);
-const showDetailDialog = ref(false);
 const informeToEdit = ref(null);
-const informeToView = ref(null);
 
-const cargarInscripcion = async () => {
-    const response = await inscripciones.getById(props.inscripcionId);
+const cargarAsistencia = async () => {
+    const response = await asistencias.getById(props.asistenciaId);
     if (response.success) {
-        inscripcion.value = response.data.data;
+        asistencia.value = response.data.data;
     }
 };
 
-const cargarInformes = async () => {
+// CAMBIADO: Solo se llama después de crear/editar
+const cargarInforme = async () => {
     loading.value = true;
-
     try {
-        const params = {
-            inscripcion_id: props.inscripcionId
-        };
-
-        if (filtroFechaDesde.value) params.fecha_desde = filtroFechaDesde.value;
-        if (filtroFechaHasta.value) params.fecha_hasta = filtroFechaHasta.value;
-        if (filtroEstado.value) params.estado = filtroEstado.value;
-
-        const response = await informesClase.getAll(params);
-
-        if (response.success) {
-            informes.value = response.data.data;
+        const response = await informesClase.porAsistencia(props.asistenciaId);
+        if (response.success && response.data.data) {
+            informe.value = response.data.data;
         }
     } catch (error) {
         console.error("Error:", error);
@@ -64,90 +43,72 @@ const cargarInformes = async () => {
     }
 };
 
+// CAMBIADO: Solo carga asistencia, NO informe
 onMounted(async () => {
-    await cargarInscripcion();
-    await cargarInformes();
+    await cargarAsistencia();
 });
 
-// Aplicar filtros
-const aplicarFiltros = () => {
-    cargarInformes();
-};
-
-// Limpiar filtros
-const limpiarFiltros = () => {
-    filtroFechaDesde.value = '';
-    filtroFechaHasta.value = '';
-    filtroEstado.value = '';
-    cargarInformes();
-};
-
-// Confirmar eliminación
-const confirmarEliminacion = (informe) => {
-    informeToDelete.value = informe;
-    showDeleteModal.value = true;
-};
-
-// Eliminar informe
-const eliminarInforme = async () => {
-    if (!informeToDelete.value) return;
-
-    loading.value = true;
-    const response = await informesClase.delete(informeToDelete.value.id);
-
-    if (response.success) {
-        await cargarInformes();
-        showDeleteModal.value = false;
-        informeToDelete.value = null;
-    }
-
-    loading.value = false;
-};
-
-// Ver detalle del informe
-const verDetalle = async (informeId) => {
-    const response = await informesClase.getById(informeId);
-    if (response.success) {
-        informeToView.value = response.data.data;
-        showDetailDialog.value = true;
-    }
-};
-
-// Editar informe
-const editarInforme = async (informeId) => {
-    const response = await informesClase.getById(informeId);
-    if (response.success) {
-        informeToEdit.value = response.data.data;
-        showFormDialog.value = true;
-    }
-};
-
-// Crear nuevo informe
 const crearInforme = () => {
     informeToEdit.value = null;
     showFormDialog.value = true;
 };
 
-// Manejar guardado de informe
-const handleInformeSaved = () => {
-    cargarInformes();
-    showFormDialog.value = false;
-    informeToEdit.value = null;
-};
-
-// Manejar edición desde dialog de detalle
-const handleEditFromDetail = () => {
-    informeToEdit.value = informeToView.value;
-    showDetailDialog.value = false;
+const editarInforme = () => {
+    informeToEdit.value = informe.value;
     showFormDialog.value = true;
 };
 
-// Volver a inscripciones
-const volverInscripciones = () => {
-    router.visit('/inscripciones');
+// CAMBIADO: Ahora SÍ carga el informe después de guardarlo
+const handleInformeSaved = async () => {
+    showFormDialog.value = false;
+    informeToEdit.value = null;
+    await cargarInforme(); // Cargar el informe que se acaba de crear/editar
 };
 
-// Obtener clase CSS para estado
+const volverAsistencias = () => {
+    if (asistencia.value?.inscripcion_id) {
+        router.visit(`/asistencias/inscripcion/${asistencia.value.inscripcion_id}`);
+    } else {
+        router.visit('/asistencias');
+    }
+};
+
+// NUEVO: Computed para saber si puede crear informe
+const puedeCrearInforme = computed(() => {
+    return !informe.value && asistencia.value?.estado === 'presente';
+});
+
+// Funciones de formateo y clases CSS (igual que antes)
+const formatearFecha = (fecha) => {
+    return new Date(fecha).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+};
+
+const getEstadoAsistenciaClass = (estado) => {
+    const classes = {
+        'presente': 'bg-green-100 text-green-800',
+        'ausente': 'bg-red-100 text-red-800',
+        'tardanza': 'bg-yellow-100 text-yellow-800',
+        'justificado': 'bg-blue-100 text-blue-800',
+        'recuperada': 'bg-purple-100 text-purple-800'
+    };
+    return classes[estado] || 'bg-gray-100 text-gray-800';
+};
+
+const getEstadoAsistenciaTexto = (estado) => {
+    const textos = {
+        'presente': 'Presente',
+        'ausente': 'Ausente',
+        'tardanza': 'Tardanza',
+        'justificado': 'Justificado',
+        'recuperada': 'Recuperada'
+    };
+    return textos[estado] || estado;
+};
+
 const getEstadoClass = (estado) => {
     const classes = {
         'realizada': 'bg-green-100 text-green-800',
@@ -157,7 +118,6 @@ const getEstadoClass = (estado) => {
     return classes[estado] || 'bg-gray-100 text-gray-800';
 };
 
-// Obtener texto del estado
 const getEstadoTexto = (estado) => {
     const textos = {
         'realizada': 'Realizada',
@@ -167,7 +127,6 @@ const getEstadoTexto = (estado) => {
     return textos[estado] || estado;
 };
 
-// Obtener clase CSS para nivel de comprensión
 const getNivelComprensionClass = (nivel) => {
     const classes = {
         'excelente': 'bg-green-100 text-green-800',
@@ -188,47 +147,80 @@ const getNivelComprensionTexto = (nivel) => {
     return textos[nivel] || nivel;
 };
 
-// Formatear fecha
-const formatearFecha = (fecha) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+const getParticipacionTexto = (participacion) => {
+    const textos = {
+        'alta': 'Alta',
+        'media': 'Media',
+        'baja': 'Baja'
+    };
+    return textos[participacion] || participacion;
+};
+
+const getCumplimientoTexto = (cumplimiento) => {
+    const textos = {
+        'completo': 'Completo',
+        'parcial': 'Parcial',
+        'no_cumplido': 'No Cumplido'
+    };
+    return textos[cumplimiento] || cumplimiento;
 };
 </script>
 
 <template>
     <AppLayout>
-        <Head :title="`Informes de Clase - ${inscripcion?.alumno_nombre || ''}`" />
+        <Head :title="`Informe de Clase - ${asistencia?.alumno_nombre || ''}`" />
 
         <div class="space-y-6">
-            <!-- Header con información de la inscripción -->
+            <!-- Header con información de la asistencia -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <div class="flex items-start justify-between mb-4">
                     <button
-                        @click="volverInscripciones"
+                        @click="volverAsistencias"
                         class="inline-flex items-center text-gray-600 hover:text-gray-900 transition"
                     >
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        Volver a Inscripciones
+                        Volver a Asistencias
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <p class="text-sm text-gray-600">Alumno</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ inscripcion?.alumno_nombre }}</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ asistencia?.alumno_nombre }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">Tutor</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ inscripcion?.tutor_nombre }}</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ asistencia?.tutor_nombre }}</p>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-600">Servicio</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ inscripcion?.servicio_nombre }}</p>
+                        <p class="text-sm text-gray-600">Fecha Asistencia</p>
+                        <p class="text-lg font-semibold text-gray-900">
+                            {{ asistencia?.fecha ? formatearFecha(asistencia.fecha) : '-' }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Estado Asistencia</p>
+                        <span v-if="asistencia" :class="getEstadoAsistenciaClass(asistencia.estado)" class="px-3 py-1 text-xs font-semibold rounded-full">
+                            {{ getEstadoAsistenciaTexto(asistencia.estado) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerta si no es presente -->
+            <div v-if="asistencia && asistencia.estado !== 'presente'" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            Los informes solo se pueden crear para asistencias marcadas como "Presente".
+                        </p>
                     </div>
                 </div>
             </div>
@@ -236,199 +228,187 @@ const formatearFecha = (fecha) => {
             <!-- Header con título y botón -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Informes de Clase</h2>
-                    <p class="text-gray-600 mt-1">Gestiona los informes de cada clase</p>
+                    <h2 class="text-2xl font-bold text-gray-900">Informe de Clase</h2>
+                    <p class="text-gray-600 mt-1">Documenta los detalles de esta clase</p>
                 </div>
                 <button
+                    v-if="!informe && asistencia?.estado === 'presente' && puedeCrearInforme"
                     @click="crearInforme"
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Nuevo Informe
+                    Crear Informe
                 </button>
             </div>
 
-            <!-- Filtros -->
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <!-- Fecha Desde -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
-                        <input
-                            v-model="filtroFechaDesde"
-                            type="date"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        />
-                    </div>
-
-                    <!-- Fecha Hasta -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
-                        <input
-                            v-model="filtroFechaHasta"
-                            type="date"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        />
-                    </div>
-
-                    <!-- Estado -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                        <select
-                            v-model="filtroEstado"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="">Todos</option>
-                            <option value="realizada">Realizada</option>
-                            <option value="cancelada">Cancelada</option>
-                            <option value="reprogramada">Reprogramada</option>
-                        </select>
-                    </div>
-
-                    <!-- Botones -->
-                    <div class="flex items-end gap-2">
-                        <button
-                            @click="aplicarFiltros"
-                            class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                        >
-                            Filtrar
-                        </button>
-                        <button
-                            @click="limpiarFiltros"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-                        >
-                            Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabla de informes -->
+            <!-- Contenido principal -->
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div v-if="loading" class="p-8 text-center">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    <p class="mt-2 text-gray-600">Cargando informes...</p>
+                    <p class="mt-2 text-gray-600">Cargando informe...</p>
                 </div>
 
-                <div v-else-if="!informes || informes.length === 0" class="p-8 text-center">
+                <!-- Sin informe -->
+                <div v-if="!informe" class="p-8 text-center">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p class="mt-2 text-gray-600">No hay informes registrados para esta inscripción</p>
+                    <p class="mt-2 text-gray-600">No hay informe para esta asistencia</p>
+                    <!-- CAMBIADO: Usa puedeCrearInforme -->
                     <button
+                        v-if="puedeCrearInforme"
                         @click="crearInforme"
                         class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                     >
-                        Crear primer informe
+                        Crear Informe
                     </button>
                 </div>
 
-                <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Fecha
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Temas Vistos
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Nivel Comprensión
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Calificación
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Estado
-                                </th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="informe in informes" :key="informe.id" class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">
-                                        {{ formatearFecha(informe.fecha) }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 max-w-xs truncate" :title="informe.temas_vistos">
-                                        {{ informe.temas_vistos }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span 
-                                        v-if="informe.nivel_comprension"
-                                        :class="getNivelComprensionClass(informe.nivel_comprension)" 
-                                        class="px-2 py-1 text-xs font-semibold rounded-full"
-                                    >
-                                        {{ getNivelComprensionTexto(informe.nivel_comprension) }}
-                                    </span>
-                                    <span v-else class="text-sm text-gray-400">-</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">
-                                        {{ informe.calificacion ? `${informe.calificacion}/100` : '-' }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span :class="getEstadoClass(informe.estado)" class="px-2 py-1 text-xs font-semibold rounded-full">
-                                        {{ getEstadoTexto(informe.estado) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex justify-end gap-2">
-                                        <!-- Ver detalle -->
-                                        <button
-                                            @click="verDetalle(informe.id)"
-                                            class="text-blue-600 hover:text-blue-900"
-                                            title="Ver detalle"
-                                        >
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        </button>
+                <!-- Con informe - Vista de detalle -->
+                <div v-else class="p-6 space-y-6">
+                    
+                    <!-- Información General -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Información General
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Fecha</p>
+                                <p class="text-sm font-medium text-gray-900 mt-1">{{ formatearFecha(informe.fecha) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
+                                <span :class="getEstadoClass(informe.estado)" class="inline-block px-2 py-1 text-xs font-semibold rounded-full mt-1">
+                                    {{ getEstadoTexto(informe.estado) }}
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Alumno</p>
+                                <p class="text-sm font-medium text-gray-900 mt-1">{{ informe.alumno_nombre || asistencia?.alumno_nombre || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
 
-                                        <!-- Editar -->
-                                        <button
-                                            @click="editarInforme(informe.id)"
-                                            class="text-indigo-600 hover:text-indigo-900"
-                                            title="Editar"
-                                        >
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </button>
+                    <!-- Contenido de la Clase -->
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Temas Vistos</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">{{ informe.temas_vistos || 'No especificado' }}</p>
+                    </div>
 
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div v-if="informe.tareas_asignadas" class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Tareas Asignadas</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">{{ informe.tareas_asignadas }}</p>
+                    </div>
+
+                    <!-- Evaluación -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Evaluación del Alumno
+                        </h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div v-if="informe.nivel_comprension">
+                                <p class="text-xs text-gray-600 mb-2">Nivel de Comprensión</p>
+                                <span :class="getNivelComprensionClass(informe.nivel_comprension)" class="inline-block px-2 py-1 text-xs font-semibold rounded-full">
+                                    {{ getNivelComprensionTexto(informe.nivel_comprension) }}
+                                </span>
+                            </div>
+                            <div v-if="informe.participacion">
+                                <p class="text-xs text-gray-600 mb-2">Participación</p>
+                                <p class="text-sm font-medium text-gray-900">{{ getParticipacionTexto(informe.participacion) }}</p>
+                            </div>
+                            <div v-if="informe.cumplimiento_tareas">
+                                <p class="text-xs text-gray-600 mb-2">Cumplimiento Tareas</p>
+                                <p class="text-sm font-medium text-gray-900">{{ getCumplimientoTexto(informe.cumplimiento_tareas) }}</p>
+                            </div>
+                            <div v-if="informe.calificacion">
+                                <p class="text-xs text-gray-600 mb-2">Calificación</p>
+                                <p class="text-2xl font-bold text-indigo-600">{{ informe.calificacion }}/100</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informe Detallado -->
+                    <div class="space-y-4">
+                        <h4 class="font-semibold text-gray-900 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Informe Detallado
+                        </h4>
+
+                        <div v-if="informe.resumen" class="bg-gray-50 rounded-lg p-4">
+                            <h5 class="text-sm font-semibold text-gray-700 mb-2">Resumen</h5>
+                            <p class="text-gray-700 text-sm whitespace-pre-wrap">{{ informe.resumen }}</p>
+                        </div>
+
+                        <div v-if="informe.logros" class="bg-green-50 rounded-lg p-4">
+                            <h5 class="text-sm font-semibold text-green-800 mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Logros
+                            </h5>
+                            <p class="text-gray-700 text-sm whitespace-pre-wrap">{{ informe.logros }}</p>
+                        </div>
+
+                        <div v-if="informe.dificultades" class="bg-yellow-50 rounded-lg p-4">
+                            <h5 class="text-sm font-semibold text-yellow-800 mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                Dificultades
+                            </h5>
+                            <p class="text-gray-700 text-sm whitespace-pre-wrap">{{ informe.dificultades }}</p>
+                        </div>
+
+                        <div v-if="informe.recomendaciones" class="bg-blue-50 rounded-lg p-4">
+                            <h5 class="text-sm font-semibold text-blue-800 mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                Recomendaciones
+                            </h5>
+                            <p class="text-gray-700 text-sm whitespace-pre-wrap">{{ informe.recomendaciones }}</p>
+                        </div>
+
+                        <div v-if="informe.observaciones" class="bg-gray-50 rounded-lg p-4">
+                            <h5 class="text-sm font-semibold text-gray-700 mb-2">Observaciones Adicionales</h5>
+                            <p class="text-gray-700 text-sm whitespace-pre-wrap">{{ informe.observaciones }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Botón de editar -->
+                    <div class="flex justify-end pt-4 border-t">
+                        <button
+                            @click="editarInforme"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                        >
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Editar Informe
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Dialogs -->
+        <!-- Dialog para crear/editar informe -->
         <InformeFormDialog
             :show="showFormDialog"
-            :inscripcion-id="inscripcionId"
+            :asistencia-id="asistenciaId"
             :informe="informeToEdit"
             @close="showFormDialog = false"
             @saved="handleInformeSaved"
-        />
-
-        <InformeDetailDialog
-            :show="showDetailDialog"
-            :informe="informeToView"
-            @close="showDetailDialog = false"
-            @edit="handleEditFromDetail"
         />
 
     </AppLayout>

@@ -10,7 +10,7 @@ class InformeClase
     public static function validar(array $datos)
     {
         return Validator::make($datos, [
-            'inscripcion_id' => 'required|exists:inscripcion,id',
+            'asistencia_id' => 'required|exists:asistencia,id',
             'fecha' => 'required|date',
             'temas_vistos' => 'required|string',
             'tareas_asignadas' => 'nullable|string',
@@ -35,7 +35,7 @@ class InformeClase
         }
 
         $id = DB::table('informe_clase')->insertGetId([
-            'inscripcion_id' => $datos['inscripcion_id'],
+            'asistencia_id' => $datos['asistencia_id'],
             'fecha' => $datos['fecha'],
             'temas_vistos' => $datos['temas_vistos'],
             'tareas_asignadas' => $datos['tareas_asignadas'] ?? null,
@@ -102,7 +102,8 @@ class InformeClase
     public static function obtenerPorId($id)
     {
         return DB::table('informe_clase')
-            ->join('inscripcion', 'informe_clase.inscripcion_id', '=', 'inscripcion.id')
+            ->join('asistencia', 'informe_clase.asistencia_id', '=', 'asistencia.id')
+            ->join('inscripcion', 'asistencia.inscripcion_id', '=', 'inscripcion.id')
             ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
             ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
             ->where('informe_clase.id', $id)
@@ -118,33 +119,42 @@ class InformeClase
         return DB::table('informe_clase')->where('id', $id)->first();
     }
 
+    public static function obtenerPorAsistencia($asistenciaId)
+    {
+        return DB::table('informe_clase')
+            ->where('asistencia_id', $asistenciaId)
+            ->first();
+    }
+
     public static function listar($filtros = [])
     {
         $query = DB::table('informe_clase')
-            ->join('inscripcion', 'informe_clase.inscripcion_id', '=', 'inscripcion.id')
+            ->join('asistencia', 'informe_clase.asistencia_id', '=', 'asistencia.id')
+            ->join('inscripcion', 'asistencia.inscripcion_id', '=', 'inscripcion.id')
             ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
             ->join('usuario', 'alumno.user_id', '=', 'usuario.id')
             ->select(
                 'informe_clase.*',
-                DB::raw("CONCAT(usuario.nombre, ' ', usuario.apellido) as alumno_nombre")
+                DB::raw("CONCAT(usuario.nombre, ' ', usuario.apellido) as alumno_nombre"),
+                'asistencia.fecha as fecha_asistencia'
             );
-
-        if (isset($filtros['inscripcion_id'])) {
-            $query->where('informe_clase.inscripcion_id', $filtros['inscripcion_id']);
+    
+        if (isset($filtros['asistencia_id'])) {
+            $query->where('informe_clase.asistencia_id', $filtros['asistencia_id']);
         }
-
+    
         if (isset($filtros['estado'])) {
             $query->where('informe_clase.estado', $filtros['estado']);
         }
-
+    
         if (isset($filtros['fecha_desde'])) {
             $query->where('informe_clase.fecha', '>=', $filtros['fecha_desde']);
         }
-
+    
         if (isset($filtros['fecha_hasta'])) {
             $query->where('informe_clase.fecha', '<=', $filtros['fecha_hasta']);
         }
-
+    
         return $query->orderBy('informe_clase.fecha', 'desc')->get();
     }
 }

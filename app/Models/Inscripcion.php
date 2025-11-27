@@ -215,11 +215,5 @@ class Inscripcion
         return $inscripciones;
     }
 
-    public static function obtenerInformes($id)
-    {
-        return DB::table('informe_clase')
-            ->where('inscripcion_id', $id)
-            ->orderBy('fecha', 'desc')
-            ->get();
-    }
+
 }

@@ -85,7 +85,7 @@ class PropietarioController extends Controller
             DB::beginTransaction();
 
             // Crear usuario base
-            $userId = DB::table('user')->insertGetId([
+            $userId = DB::table('usuario')->insertGetId([
                 'nombre' => $request->nombre,
                 'apellido' => $request->apellido,
                 'telefono' => $request->telefono,
@@ -101,7 +101,7 @@ class PropietarioController extends Controller
                 'user_id' => $userId,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'rol' => $request->rol,
+                'rol' => $request->rol ?? 'subPropietario',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -110,10 +110,10 @@ class PropietarioController extends Controller
 
             // Obtener el propietario creado con sus datos de usuario
             $propietario = DB::table('propietario')
-                ->join('user', 'propietario.user_id', '=', 'user.id')
+                ->join('usuario', 'propietario.user_id', '=', 'usuario.id')
                 ->where('propietario.id', $propietarioId)
-                ->select('propietario.*', 'user.nombre', 'user.apellido', 'user.telefono', 
-                        'user.fecha_nacimiento', 'user.direccion', 'user.estado')
+                ->select('propietario.*', 'usuario.nombre', 'usuario.apellido', 'usuario.telefono', 
+                        'usuario.fecha_nacimiento', 'usuario.direccion', 'usuario.estado')
                 ->first();
 
             return response()->json([
@@ -208,7 +208,7 @@ class PropietarioController extends Controller
 
             if (!empty($datosUsuario)) {
                 $datosUsuario['updated_at'] = now();
-                DB::table('user')
+                DB::table('usuario')
                     ->where('id', $propietario->user_id)
                     ->update($datosUsuario);
             }
@@ -230,10 +230,10 @@ class PropietarioController extends Controller
 
             // Obtener el propietario actualizado
             $propietario = DB::table('propietario')
-                ->join('user', 'propietario.user_id', '=', 'user.id')
+                ->join('usuario', 'propietario.user_id', '=', 'usuario.id')
                 ->where('propietario.id', $id)
-                ->select('propietario.*', 'user.nombre', 'user.apellido', 'user.telefono', 
-                        'user.fecha_nacimiento', 'user.direccion', 'user.estado')
+                ->select('propietario.*', 'usuario.nombre', 'usuario.apellido', 'usuario.telefono', 
+                        'usuario.fecha_nacimiento', 'usuario.direccion', 'usuario.estado')
                 ->first();
 
             return response()->json([

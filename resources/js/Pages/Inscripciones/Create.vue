@@ -4,8 +4,10 @@ import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '../../Layout/AppLayout.vue';
 import { useApi } from '../../composables/useApi';
 import { useAuth } from '../../composables/useAuth';
+import { useFormValidation } from '../../composables/useFormValidation';
 
 const { inscripciones: inscripcionesApi, alumnos, tutores, servicios, horarios: horariosApi } = useApi();
+const { errors, rules, validateField, validateForm, clearErrors, setBackendErrors } = useFormValidation();
 const { user } = useAuth();
 
 const alumnosList = ref([]);
@@ -31,6 +33,32 @@ const form = ref({
     fecha_venta: new Date().toISOString().split('T')[0],
     fecha_vencimiento: null,
 });
+
+
+const validationRules = {
+    monto_total: [
+        (value) => rules.required(value, 'monto_total'),
+        (value) => rules.integer(value, 'monto_total'),
+        (value) => rules.noSpecialChars(value, 'monto_total'),
+        
+    ],
+    id_servicio: [
+        (value) => rules.required(value, 'servicio'),
+    ]
+};
+
+
+const handleBlur = (fieldName) => {
+    if (validationRules[fieldName]) {
+        validateField(fieldName, form.value[fieldName], validationRules[fieldName]);
+    }
+};
+
+const handleInput = (fieldName) => {
+    if (errors.value[fieldName]) {
+        delete errors.value[fieldName];
+    }
+};
 
 const saldoPendiente = computed(() => {
     return form.value.monto_total - form.value.monto_pagado;
@@ -180,6 +208,12 @@ onMounted(() => {
                                         {{ servicio.nombre }}
                                     </option>
                                 </select>
+                                <p v-if="errors.id_servicio" class="mt-1 text-sm text-red-600 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{ errors.id_servicio }}
+                                </p>
                             </div>
 
                             <div>
@@ -262,7 +296,7 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <!-- Sección: Pago (condicional) -->
+                      
                         <div v-if="form.crear_venta" class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
@@ -286,7 +320,13 @@ onMounted(() => {
                                     </label>
                                     <div class="relative">
                                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Bs.</span>
-                                        <input v-model.number="form.monto_total" type="number" step="0.01" min="0" class="w-full pl-12 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                                        <input v-model.number="form.monto_total" type="number" @blur="handleBlur('monto_total')" @input="handleInput('monto_total')" step="0.01" min="0" class="w-full pl-12 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                                        <p v-if="errors.monto_total" class="mt-1 text-sm text-red-600 flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ errors.monto_total }}
+                                        </p>
                                     </div>
                                 </div>
 

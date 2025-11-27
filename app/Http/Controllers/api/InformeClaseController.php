@@ -12,7 +12,7 @@ class InformeClaseController extends Controller
     {
         try {
             $filtros = [
-                'inscripcion_id' => $request->get('inscripcion_id'),
+                'asistencia_id' => $request->get('asistencia_id'),
                 'estado' => $request->get('estado'),
                 'fecha_desde' => $request->get('fecha_desde'),
                 'fecha_hasta' => $request->get('fecha_hasta'),
@@ -36,7 +36,7 @@ class InformeClaseController extends Controller
     {
         try {
             $datos = $request->only([
-                'inscripcion_id', 'fecha', 'temas_vistos', 'tareas_asignadas',
+                'asistencia_id', 'fecha', 'temas_vistos', 'tareas_asignadas',
                 'nivel_comprension', 'participacion', 'cumplimiento_tareas',
                 'calificacion', 'resumen', 'logros', 'dificultades',
                 'recomendaciones', 'observaciones', 'estado'
@@ -121,4 +121,21 @@ class InformeClaseController extends Controller
             ], 500);
         }
     }
+
+    public function porAsistencia($asistenciaId)
+{
+    try {
+        $informe = InformeClase::obtenerPorAsistencia($asistenciaId);
+
+        return response()->json([
+            'data' => $informe
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al obtener informe',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

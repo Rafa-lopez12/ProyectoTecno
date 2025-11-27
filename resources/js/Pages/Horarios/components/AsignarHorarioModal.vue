@@ -6,9 +6,9 @@ const emit = defineEmits(['close', 'success']);
 
 const { tutores, horarios: horariosApi } = useApi();
 
-const paso = ref(1); // 1: Seleccionar tutor, 2: Seleccionar/crear horario
+const paso = ref(1); // 1: Seleccionar tutor, 2: Seleccionar/crear horarios
 const tutorSeleccionado = ref(null);
-const horarioSeleccionado = ref(null);
+const horariosSeleccionados = ref([]); // Ahora es un array para múltiples selecciones
 const listaHorarios = ref([]);
 const listaTutores = ref([]);
 const loading = ref(false);
@@ -80,15 +80,32 @@ const seleccionarTutor = (tutor) => {
 const volverPaso1 = () => {
     paso.value = 1;
     tutorSeleccionado.value = null;
-    horarioSeleccionado.value = null;
+    horariosSeleccionados.value = [];
     mostrarFormNuevoHorario.value = false;
 };
 
 const toggleNuevoHorario = () => {
     mostrarFormNuevoHorario.value = !mostrarFormNuevoHorario.value;
     if (mostrarFormNuevoHorario.value) {
-        horarioSeleccionado.value = null;
+        horariosSeleccionados.value = [];
     }
+};
+
+// Función para togglear selección de horario
+const toggleHorario = (horario) => {
+    const index = horariosSeleccionados.value.findIndex(h => h.id === horario.id);
+    if (index > -1) {
+        // Ya está seleccionado, removerlo
+        horariosSeleccionados.value.splice(index, 1);
+    } else {
+        // No está seleccionado, agregarlo
+        horariosSeleccionados.value.push(horario);
+    }
+};
+
+// Función para verificar si un horario está seleccionado
+const estaSeleccionado = (horarioId) => {
+    return horariosSeleccionados.value.some(h => h.id === horarioId);
 };
 
 const crearYAsignarHorario = async () => {
@@ -120,20 +137,34 @@ const crearYAsignarHorario = async () => {
     loading.value = false;
 };
 
-const asignarHorario = async () => {
-    if (!horarioSeleccionado.value) {
-        alert('Por favor selecciona un horario');
+const asignarHorarios = async () => {
+    if (horariosSeleccionados.value.length === 0) {
+        alert('Por favor selecciona al menos un horario');
         return;
     }
     
     loading.value = true;
     
-    const result = await horariosApi.asignarTutor(horarioSeleccionado.value.id, tutorSeleccionado.value.id);
-    
-    if (result.success) {
-        emit('success');
-    } else {
-        alert('Error al asignar horario: ' + (result.error || 'Error desconocido'));
+    try {
+        // Asignar cada horario seleccionado
+        const promesas = horariosSeleccionados.value.map(horario => 
+            horariosApi.asignarTutor(horario.id, tutorSeleccionado.value.id)
+        );
+        
+        const resultados = await Promise.all(promesas);
+        
+        // Verificar si todos fueron exitosos
+        const todoExitoso = resultados.every(r => r.success);
+        
+        if (todoExitoso) {
+            emit('success');
+        } else {
+            const fallidos = resultados.filter(r => !r.success).length;
+            alert(`Se asignaron ${resultados.length - fallidos} de ${resultados.length} horarios correctamente`);
+            emit('success');
+        }
+    } catch (error) {
+        alert('Error al asignar horarios: ' + error.message);
     }
     
     loading.value = false;
@@ -155,7 +186,7 @@ onMounted(() => {
             <!-- Header -->
             <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex items-center justify-between">
                 <h3 class="text-xl font-bold text-white">
-                    {{ paso === 1 ? 'Seleccionar Tutor' : 'Asignar Horario' }}
+                    {{ paso === 1 ? 'Seleccionar Tutor' : 'Asignar Horarios' }}
                 </h3>
                 <button
                     @click="emit('close')"
@@ -186,7 +217,7 @@ onMounted(() => {
                         <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold', paso === 2 ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-gray-600']">
                             2
                         </div>
-                        <span class="ml-2 text-sm font-medium text-gray-700">Asignar Horario</span>
+                        <span class="ml-2 text-sm font-medium text-gray-700">Asignar Horarios</span>
                     </div>
                 </div>
             </div>
@@ -241,7 +272,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Paso 2: Asignar Horario -->
+                <!-- Paso 2: Asignar Horarios -->
                 <div v-if="paso === 2" class="space-y-6">
                     <!-- Tutor Seleccionado -->
                     <div class="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-4">
@@ -266,6 +297,26 @@ onMounted(() => {
                                 class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                             >
                                 Cambiar tutor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Contador de horarios seleccionados -->
+                    <div v-if="!mostrarFormNuevoHorario && horariosSeleccionados.length > 0" class="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="font-semibold text-green-800">
+                                    {{ horariosSeleccionados.length }} {{ horariosSeleccionados.length === 1 ? 'horario seleccionado' : 'horarios seleccionados' }}
+                                </span>
+                            </div>
+                            <button
+                                @click="horariosSeleccionados = []"
+                                class="text-sm text-red-600 hover:text-red-800 font-medium"
+                            >
+                                Limpiar selección
                             </button>
                         </div>
                     </div>
@@ -311,34 +362,42 @@ onMounted(() => {
                             <p class="text-sm text-gray-500 mt-1">Todos los horarios ya están asignados a este tutor</p>
                         </div>
 
-                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button
-                                v-for="horario in horariosDisponibles"
-                                :key="horario.id"
-                                @click="horarioSeleccionado = horario"
-                                :class="[
-                                    'text-left p-4 border-2 rounded-lg transition-all',
-                                    horarioSeleccionado?.id === horario.id
-                                        ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                                        : 'border-gray-200 hover:border-indigo-300 hover:shadow'
-                                ]"
-                            >
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="font-semibold text-gray-900 capitalize">
-                                            {{ horario.dia_semana }}
-                                        </p>
-                                        <p class="text-sm text-gray-600 mt-1">
-                                            {{ formatearHora(horario.hora_inicio) }} - {{ formatearHora(horario.hora_fin) }}
-                                        </p>
+                        <div v-else>
+                            <p class="text-sm text-gray-600 mb-4 text-center">
+                                Haz clic en los horarios que deseas asignar (puedes seleccionar varios)
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button
+                                    v-for="horario in horariosDisponibles"
+                                    :key="horario.id"
+                                    @click="toggleHorario(horario)"
+                                    :class="[
+                                        'text-left p-4 border-2 rounded-lg transition-all',
+                                        estaSeleccionado(horario.id)
+                                            ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                                            : 'border-gray-200 hover:border-indigo-300 hover:shadow'
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="font-semibold text-gray-900 capitalize">
+                                                {{ horario.dia_semana }}
+                                            </p>
+                                            <p class="text-sm text-gray-600 mt-1">
+                                                {{ formatearHora(horario.hora_inicio) }} - {{ formatearHora(horario.hora_fin) }}
+                                            </p>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <div v-if="estaSeleccionado(horario.id)" class="bg-indigo-600 rounded-full p-1">
+                                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div v-else class="border-2 border-gray-300 rounded-full w-7 h-7"></div>
+                                        </div>
                                     </div>
-                                    <div v-if="horarioSeleccionado?.id === horario.id" class="flex-shrink-0">
-                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </button>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -391,12 +450,14 @@ onMounted(() => {
                 </button>
                 <button
                     v-if="paso === 2"
-                    @click="mostrarFormNuevoHorario ? crearYAsignarHorario() : asignarHorario()"
-                    :disabled="loading || (!mostrarFormNuevoHorario && !horarioSeleccionado)"
+                    @click="mostrarFormNuevoHorario ? crearYAsignarHorario() : asignarHorarios()"
+                    :disabled="loading || (!mostrarFormNuevoHorario && horariosSeleccionados.length === 0)"
                     class="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span v-if="loading">Procesando...</span>
-                    <span v-else>{{ mostrarFormNuevoHorario ? 'Crear y Asignar' : 'Asignar Horario' }}</span>
+                    <span v-else>
+                        {{ mostrarFormNuevoHorario ? 'Crear y Asignar' : `Asignar ${horariosSeleccionados.length} ${horariosSeleccionados.length === 1 ? 'Horario' : 'Horarios'}` }}
+                    </span>
                 </button>
             </div>
         </div>
