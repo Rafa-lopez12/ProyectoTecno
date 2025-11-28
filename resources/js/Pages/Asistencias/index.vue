@@ -101,7 +101,7 @@ const getEstadoTexto = (estado) => {
 
 // Ver asistencias de una inscripción
 const verAsistencias = (inscripcionId) => {
-    router.visit(`/asistencias/inscripcion/${inscripcionId}`);
+    router.visit(`asistencias/inscripcion/${inscripcionId}`);
 };
 </script>
 

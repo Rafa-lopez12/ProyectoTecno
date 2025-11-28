@@ -67,9 +67,9 @@ const handleInformeSaved = async () => {
 
 const volverAsistencias = () => {
     if (asistencia.value?.inscripcion_id) {
-        router.visit(`/asistencias/inscripcion/${asistencia.value.inscripcion_id}`);
+        router.visit(`asistencias/inscripcion/${asistencia.value.inscripcion_id}`);
     } else {
-        router.visit('/asistencias');
+        router.visit('asistencias');
     }
 };
 

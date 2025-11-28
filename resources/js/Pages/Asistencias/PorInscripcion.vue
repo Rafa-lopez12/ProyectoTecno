@@ -194,7 +194,7 @@ const crearAsistencia = async () => {
 
 // Ver detalle de asistencia
 const verDetalle = (asistenciaId) => {
-    router.visit(`/asistencias/${asistenciaId}`);
+    router.visit(`asistencias/${asistenciaId}`);
 };
 
 // Limpiar filtros
@@ -205,7 +205,7 @@ const limpiarFiltros = () => {
 
 // Volver
 const volver = () => {
-    router.visit('/asistencias');
+    router.visit('asistencias');
 };
 </script>
 

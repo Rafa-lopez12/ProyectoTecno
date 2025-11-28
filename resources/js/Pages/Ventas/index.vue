@@ -23,7 +23,7 @@ const estadisticas = ref({
 });
 
 const verPagos = (ventaId) => {
-    router.visit(`/ventas/${ventaId}/pagos`);
+    router.visit(`ventas/${ventaId}/pagos`);
 };
 
 const cargarVentas = async () => {

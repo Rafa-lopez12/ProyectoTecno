@@ -261,9 +261,9 @@ const eliminarReprogramacion = async (reprogramacionId) => {
 // Volver al detalle de asistencia
 const volver = () => {
     if (licencia.value?.asistencia_id) {
-        router.visit(`/asistencias/${licencia.value.asistencia_id}`);
+        router.visit(`asistencias/${licencia.value.asistencia_id}`);
     } else {
-        router.visit('/asistencias');
+        router.visit('asistencias');
     }
 };
 
