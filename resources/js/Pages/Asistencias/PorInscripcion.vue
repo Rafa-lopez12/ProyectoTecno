@@ -205,7 +205,7 @@ const limpiarFiltros = () => {
 
 // Volver
 const volver = () => {
-    router.visit('/asistencias');
+    router.visit('asistencias');
 };
 </script>
 

@@ -13,7 +13,7 @@ onMounted(async () => {
     initTheme(); // Inicializar tema
     const isAuth = await checkAuth();
     if (!isAuth) {
-        router.visit('/login');
+        router.visit('login');
     }
 });
 

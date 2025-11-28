@@ -10,7 +10,7 @@ const showMobileMenu = ref(false);
 onMounted(async () => {
     const isAuth = await checkAuth();
     if (!isAuth) {
-        router.visit('/login');
+        router.visit('login');
     }
 });
 

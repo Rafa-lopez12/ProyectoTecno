@@ -128,7 +128,7 @@ const handleSubmit = async () => {
     const result = await inscripcionesApi.create(form.value);
     
     if (result.success) {
-        router.visit('/inscripciones');
+        router.visit('inscripciones');
     } else {
         alert('Error al crear inscripción: ' + (result.error || 'Error desconocido'));
     }
@@ -149,7 +149,7 @@ onMounted(() => {
             <!-- Header -->
             <div class="mb-6">
                 <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <button @click="router.visit('/inscripciones')" class="hover:text-indigo-600">
+                    <button @click="router.visit('inscripciones')" class="hover:text-indigo-600">
                         Inscripciones
                     </button>
                     <span>/</span>
@@ -380,7 +380,7 @@ onMounted(() => {
 
                 <!-- Botones -->
                 <div class="flex items-center justify-between bg-gray-50 rounded-xl p-6 border border-gray-200">
-                    <button type="button" @click="router.visit('/inscripciones')" class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
+                    <button type="button" @click="router.visit('inscripciones')" class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                         Cancelar
                     </button>
                     <button type="submit" :disabled="loading" class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
