@@ -148,7 +148,7 @@ const getMetodoBadge = (metodo) => {
 };
 
 const volver = () => {
-    router.visit('ventas');
+    router.visit('/ventas');
 };
 
 onMounted(() => {
