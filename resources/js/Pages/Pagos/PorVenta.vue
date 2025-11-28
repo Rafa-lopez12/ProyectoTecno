@@ -178,7 +178,7 @@ onMounted(() => {
                         <p class="text-gray-600 mt-1">Gestión de pagos y saldos</p>
                     </div>
                     <button
-                        v-if="saldoPendiente > 0"
+                        
                         @click="abrirModal"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center"
                     >
