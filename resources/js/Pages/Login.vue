@@ -24,9 +24,9 @@ const submitLogin = async () => {
         const tipoUsuario = result.data.user.tipo_usuario;
         
         if (tipoUsuario === 'alumno') {
-            router.visit('/alumno/dashboard');
+            router.visit('alumno/dashboard');
         } else {
-            router.visit('/dashboard');
+            router.visit('dashboard');
         }
     } else {
         error.value = result.message;
