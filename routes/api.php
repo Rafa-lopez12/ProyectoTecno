@@ -3,18 +3,18 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\AlumnoController;
-use App\Http\Controllers\Api\AsistenciaController;
-use App\Http\Controllers\Api\TutorController;
-use App\Http\Controllers\Api\PropietarioController;
-use App\Http\Controllers\Api\HorarioController;
-use App\Http\Controllers\Api\InscripcionController;
-use App\Http\Controllers\Api\InformeClaseController;
-use App\Http\Controllers\Api\LicenciaController;
-use App\Http\Controllers\Api\ReprogramacionController;
-use App\Http\Controllers\Api\VentaController;
-use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\api\AuthController;
+use App\Http\Controllers\api\AlumnoController;
+use App\Http\Controllers\api\AsistenciaController;
+use App\Http\Controllers\api\TutorController;
+use App\Http\Controllers\api\PropietarioController;
+use App\Http\Controllers\api\HorarioController;
+use App\Http\Controllers\api\InscripcionController;
+use App\Http\Controllers\api\InformeClaseController;
+use App\Http\Controllers\api\LicenciaController;
+use App\Http\Controllers\api\ReprogramacionController;
+use App\Http\Controllers\api\VentaController;
+use App\Http\Controllers\api\PagoController;
 use App\Models\Servicio;
 
 // Rutas públicas de autenticación

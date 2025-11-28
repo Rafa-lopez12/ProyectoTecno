@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/Api/VentaController.php - Agregar método para alumnos
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venta;
