@@ -54,7 +54,7 @@ export function useAuth() {
             localStorage.removeItem('user');
             localStorage.removeItem('pagofacil_token');
             delete axios.defaults.headers.common['Authorization'];
-            router.visit('login');
+            router.visit('/login');
         }
     };
 
