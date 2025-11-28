@@ -145,3 +145,7 @@ Route::prefix('propietarios')->group(function () {
         return Inertia::render('Propietarios/Edit', ['id' => $id]);
     })->name('propietarios.edit');
 });
+
+Route::get('/reportes', function () {
+    return Inertia::render('Rep_Est/index');
+})->name('reportes.index');

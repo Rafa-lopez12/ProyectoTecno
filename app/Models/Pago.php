@@ -110,7 +110,7 @@ class Pago
                 'amount' => floatval($datos['monto']),
                 'currency' => 2, // Siempre 2 (BOB)
                 'clientCode' => $venta->alumno_codigo,
-                'callbackUrl' => 'https://b606be7ab414.ngrok-free.app/api/v1/pago/callback',
+                'callbackUrl' => 'https://f269eb9685df.ngrok-free.app/api/v1/pago/callback',
                 'orderDetail' => [
                     [
                         'serial' => 1,

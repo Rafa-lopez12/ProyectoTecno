@@ -2,11 +2,15 @@
 import { ref, onMounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { useAuth } from '../composables/useAuth';
+import { useTheme } from '../composables/useTheme';
+import ThemeSelector from '../Components/ThemeSelector.vue';
 
 const { user, logout, checkAuth } = useAuth();
+const { initTheme } = useTheme();
 const showMobileMenu = ref(false);
 
 onMounted(async () => {
+    initTheme(); // Inicializar tema
     const isAuth = await checkAuth();
     if (!isAuth) {
         router.visit('/login');
@@ -19,15 +23,15 @@ const handleLogout = async () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100">
-        <nav class="bg-white border-b border-gray-100">
+    <div class="min-h-screen theme-background transition-colors duration-300">
+        <nav class="theme-surface theme-border border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <!-- Logo y Nav Desktop -->
                     <div class="flex">
                         <div class="shrink-0 flex items-center">
-                            <Link :href="route('dashboard')" class="text-lg sm:text-xl font-bold text-gray-800">
-                                Sistema
+                            <Link :href="route('dashboard')" class="text-lg sm:text-xl font-bold theme-text">
+                                Sistema Educativo
                             </Link>
                         </div>
 
@@ -36,7 +40,7 @@ const handleLogout = async () => {
                             <Link 
                                 :href="route('dashboard')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/dashboard') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/dashboard') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Dashboard
                             </Link>
@@ -44,7 +48,7 @@ const handleLogout = async () => {
                                 v-if="user?.rol !== 'tutor'"
                                 :href="route('usuarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/usuarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/usuarios') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Usuarios
                             </Link>
@@ -52,21 +56,21 @@ const handleLogout = async () => {
                                 v-if="user?.rol !== 'tutor'"
                                 :href="route('horarios.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/horarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/horarios') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Horarios
                             </Link>
                             <Link 
                                 :href="route('inscripciones.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/inscripciones') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/inscripciones') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Inscripciones
                             </Link>
                             <Link 
                                 :href="route('asistencias.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/asistencias') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/asistencias') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Asistencias
                             </Link>
@@ -74,29 +78,30 @@ const handleLogout = async () => {
                                 v-if="user?.rol !== 'tutor'"
                                 :href="route('ventas.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/ventas') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/ventas') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
                                 Ventas
                             </Link>
                             <Link 
                                 v-if="user?.rol !== 'tutor'"
-                                :href="route('propietarios.index')" 
+                                :href="route('reportes.index')" 
                                 class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition"
-                                :class="$page.url.startsWith('/propietarios') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                :class="$page.url.startsWith('/reportes') ? 'theme-primary-border theme-text' : 'border-transparent theme-text-secondary hover:theme-text'"
                             >
-                                Propietarios
+                                Reportes
                             </Link>
                         </div>
                     </div>
 
                     <!-- User Menu Desktop -->
                     <div class="hidden md:flex items-center space-x-4">
-                        <span class="text-sm text-gray-700">
+                        <ThemeSelector />
+                        <span class="text-sm theme-text">
                             {{ user?.nombre }}
                         </span>
                         <button
                             @click="handleLogout"
-                            class="text-sm text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
+                            class="text-sm theme-text hover:theme-primary-text px-3 py-2 rounded-md hover:theme-primary-bg transition"
                         >
                             Salir
                         </button>
@@ -106,7 +111,7 @@ const handleLogout = async () => {
                     <div class="md:hidden flex items-center">
                         <button
                             @click="showMobileMenu = !showMobileMenu"
-                            class="text-gray-700 hover:text-gray-900 p-2"
+                            class="theme-text hover:theme-primary-text p-2"
                         >
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path v-if="!showMobileMenu" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -122,60 +127,61 @@ const handleLogout = async () => {
                         <Link 
                             :href="route('dashboard')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/dashboard') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Dashboard
                         </Link>
                         <Link 
                             :href="route('usuarios.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/usuarios') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/usuarios') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Usuarios
                         </Link>
                         <Link 
                             :href="route('horarios.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/horarios') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/horarios') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Horarios
                         </Link>
                         <Link 
                             :href="route('inscripciones.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/inscripciones') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/inscripciones') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Inscripciones
                         </Link>
                         <Link 
                             :href="route('asistencias.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/asistencias') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/asistencias') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Asistencias
                         </Link>
                         <Link 
                             :href="route('ventas.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/ventas') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/ventas') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
                             Ventas
                         </Link>
                         <Link 
-                            :href="route('propietarios.index')" 
+                            :href="route('reportes.index')" 
                             class="block px-4 py-2 text-base font-medium rounded-md"
-                            :class="$page.url.startsWith('/propietarios') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                            :class="$page.url.startsWith('/reportes') ? 'theme-primary-bg theme-primary-text' : 'theme-text hover:theme-primary-bg'"
                         >
-                            Propietarios
+                            Reportes
                         </Link>
                     </div>
-                    <div class="border-t border-gray-200 mt-4 pt-4">
-                        <div class="px-4 py-2 text-sm text-gray-700">
-                            {{ user?.nombre }} {{ user?.apellido }}
+                    <div class="border-t theme-border mt-4 pt-4">
+                        <div class="px-4 py-2 flex items-center justify-between">
+                            <span class="text-sm theme-text">{{ user?.nombre }} {{ user?.apellido }}</span>
+                            <ThemeSelector />
                         </div>
                         <button
                             @click="handleLogout"
-                            class="w-full text-left px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                            class="w-full text-left px-4 py-2 text-base font-medium theme-text hover:theme-primary-bg rounded-md"
                         >
                             Cerrar Sesión
                         </button>

@@ -8,4 +8,75 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    
+    /* Variables CSS para temas - AGREGADAS */
+    --color-primary: #6366F1;
+    --color-secondary: #8B5CF6;
+    --color-accent: #EC4899;
+    --color-background: #F9FAFB;
+    --color-surface: #FFFFFF;
+    --color-text: #111827;
+    --color-textSecondary: #6B7280;
+    --color-border: #E5E7EB;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+}
+
+/* Clases de utilidad para temas */
+.theme-background {
+    background-color: var(--color-background);
+}
+
+.theme-surface {
+    background-color: var(--color-surface);
+}
+
+.theme-text {
+    color: var(--color-text);
+}
+
+.theme-text-secondary {
+    color: var(--color-textSecondary);
+}
+
+.theme-border {
+    border-color: var(--color-border);
+}
+
+.theme-primary-bg {
+    background-color: var(--color-primary);
+    opacity: 0.1;
+}
+
+.theme-primary-bg:hover {
+    opacity: 0.2;
+}
+
+.theme-primary-text {
+    color: var(--color-primary);
+}
+
+.theme-primary-border {
+    border-color: var(--color-primary);
+}
+
+.theme-button {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.theme-button:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* Transiciones suaves para cambios de tema */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
