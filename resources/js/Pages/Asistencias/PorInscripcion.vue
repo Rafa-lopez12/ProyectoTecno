@@ -194,7 +194,7 @@ const crearAsistencia = async () => {
 
 // Ver detalle de asistencia
 const verDetalle = (asistenciaId) => {
-    router.visit(`asistencias/${asistenciaId}`);
+    router.visit(route('asistencias.detalle', asistenciaId));
 };
 
 // Limpiar filtros
