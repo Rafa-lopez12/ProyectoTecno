@@ -248,15 +248,15 @@ const rechazarLicencia = async () => {
 
 // Ver reprogramación
 const verReprogramacion = () => {
-    router.visit(`asistencias/licencia/${licencia.value.id}/reprogramacion`);
+    router.visit(route('asistencias.reprogramacion', licencia.value.id))
 };
 
 // Volver
 const volver = () => {
     if (asistencia.value?.inscripcion_id) {
-        router.visit(`asistencias/inscripcion/${asistencia.value.inscripcion_id}`);
+        router.visit(route('asistencias.por-inscripcion', asistencia.value.inscripcion_id))
     } else {
-        router.visit('asistencias');
+        router.visit(route('asistencias.index'))
     }
 };
 </script>
@@ -505,7 +505,7 @@ const volver = () => {
 
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <button
-                        @click="router.visit(`asistencias/${asistenciaId}/informe`)"
+                        @click="router.visit(route('asistencias.informe', asistenciaId))"
                         class="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
                     >
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
