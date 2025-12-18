@@ -32,6 +32,7 @@ const form = ref({
     mes_correspondiente: new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' }),
     fecha_venta: new Date().toISOString().split('T')[0],
     fecha_vencimiento: null,
+    cuotas: 1,
 });
 
 
@@ -307,6 +308,19 @@ onMounted(() => {
                                         <option value="contado">💵 Contado</option>
                                         <option value="credito">📅 Crédito</option>
                                     </select>
+                                </div>
+
+                                <div v-if="form.tipo_venta === 'credito'">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Cantidad de Cuotas <span class="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        v-model.number="form.cuotas" 
+                                        type="number" 
+                                        min="1" 
+                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                    >
+                                   
                                 </div>
 
                                 <div class="md:col-span-2">

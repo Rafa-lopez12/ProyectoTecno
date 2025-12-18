@@ -48,17 +48,62 @@ class Inscripcion
     
             // Crear venta automáticamente
             if (isset($datos['crear_venta']) && $datos['crear_venta']) {
-                Venta::crear([
+                $montoTotal = $datos['monto_total'] ?? 0;
+                $montoPagado = $datos['monto_pagado'] ?? 0;
+                $saldoPendiente = $montoTotal - $montoPagado;
+    
+                $ventaId = DB::table('venta')->insertGetId([
                     'inscripcion_id' => $id,
                     'propietario_id' => $datos['propietario_id'] ?? null,
                     'tipo_venta' => $datos['tipo_venta'] ?? 'contado',
-                    'monto_total' => $datos['monto_total'] ?? 0,
-                    'monto_pagado' => $datos['monto_pagado'] ?? 0,
-                    'saldo_pendiente' => ($datos['monto_total'] ?? 0) - ($datos['monto_pagado'] ?? 0),
+                    'cuotas'=> $datos['cuotas'] ?? null,
+                    'monto_total' => $montoTotal,
+                    'monto_pagado' => $montoPagado,
+                    'saldo_pendiente' => $saldoPendiente,
                     'mes_correspondiente' => $datos['mes_correspondiente'] ?? date('F Y'),
                     'fecha_venta' => $datos['fecha_venta'] ?? now()->toDateString(),
                     'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
+                    'estado' => $montoPagado >= $montoTotal ? 'pagado' : ($montoPagado > 0 ? 'parcial' : 'pendiente'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
+    
+                // Crear planes de pago si es crédito
+                if (($datos['tipo_venta'] ?? 'contado') === 'credito' && $saldoPendiente > 0) {
+                    $cantidadCuotas = $datos['cantidad_cuotas'] ?? 1;
+                    $montoPorCuota = 100;
+                    $cuotasCompletas = floor($saldoPendiente / $montoPorCuota);
+                    $montoRestante = $saldoPendiente - ($cuotasCompletas * $montoPorCuota);
+    
+                    // Crear cuotas completas de 100
+                    for ($i = 1; $i <= $cuotasCompletas; $i++) {
+                        DB::table('pago')->insert([
+                            'venta_id' => $ventaId,
+                            'monto' => $montoPorCuota,
+                            'metodo_pago' => 'plan_pago',
+                            'estado' => 'pendiente',
+                            'fecha_pago' => null,
+                            'observaciones' => "Cuota {$i} de {$cantidadCuotas}",
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+    
+                    // Si hay monto restante, crear cuota adicional
+                    if ($montoRestante > 0) {
+                        DB::table('pagos')->insert([
+                            'venta_id' => $ventaId,
+                            'monto' => $montoRestante,
+                            'metodo_pago' => 'plan_pago',
+                            'estado' => 'pendiente',
+                            'fecha_pago' => null,
+                            'observaciones' => "Cuota " . ($cuotasCompletas + 1) . " de {$cantidadCuotas} (Saldo restante)",
+                          
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
             }
     
             DB::commit();

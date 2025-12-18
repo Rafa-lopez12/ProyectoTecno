@@ -48,16 +48,16 @@ class InscripcionController extends Controller
                 'fecha_inscripcion', 'estado', 'observaciones',
                 'crear_venta', 'propietario_id', 'tipo_venta',
                 'monto_total', 'monto_pagado', 'mes_correspondiente',
-                'fecha_venta', 'fecha_vencimiento'
+                'fecha_venta', 'fecha_vencimiento', 'cantidad_cuotas'
             ]);
-
+    
             $inscripcion = Inscripcion::crear($datos);
-
+    
             return response()->json([
                 'message' => 'Inscripción creada exitosamente',
                 'data' => $inscripcion
             ], 201);
-
+    
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear inscripción',

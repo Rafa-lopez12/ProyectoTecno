@@ -73,7 +73,8 @@ class PagoController extends Controller
             $datos = $request->only([
                 'venta_id', 
                 'monto', 
-                'email'
+                'email',
+                'pago_id',
             ]);
 
             $result = Pago::generarQR($datos);

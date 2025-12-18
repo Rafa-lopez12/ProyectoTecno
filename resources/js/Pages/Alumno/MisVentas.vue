@@ -7,14 +7,13 @@ import { useApi } from '../../composables/useApi';
 const { ventas: ventasApi, pagos: pagosApi } = useApi();
 
 const ventas = ref([]);
+const cuotasPendientes = ref({});
 const loading = ref(true);
 const generandoQR = ref(false);
 const showQRModal = ref(false);
-const showMontoModal = ref(false); // Nuevo modal para monto
 const qrData = ref(null);
-const ventaSeleccionada = ref(null);
+const cuotaSeleccionada = ref(null);
 
-// Formulario para monto a pagar
 const formMonto = ref({
     monto: 0,
     email: ''
@@ -25,8 +24,56 @@ const cargarVentas = async () => {
     try {
         const response = await ventasApi.misVentas();
         if (response.success) {
-            console.log(response)
             ventas.value = response.data.data;
+            
+            for (const venta of ventas.value) {
+                const cuotasRes = await pagosApi.porVenta(venta.id);
+                if (cuotasRes.success) {
+                    const todosPagos = cuotasRes.data.data;
+                    
+                    // Si tiene cuotas definidas, mostrar solo esas cuotas
+                    if (venta.cuotas) {
+                        const cuotasAgrupadas = [];
+                        const totalCuotas = parseInt(venta.cuotas);
+                        
+                        for (let i = 1; i <= totalCuotas; i++) {
+                            // Buscar pagos de esta cuota (pendientes o pagados)
+                            const pagosDeEstaCuota = todosPagos.filter(p => 
+                                p.observaciones && p.observaciones.includes(`Cuota ${i} de`)
+                            );
+                            
+                            if (pagosDeEstaCuota.length > 0) {
+                                // Verificar si todos los pagos de esta cuota están pagados
+                                const todoPagado = pagosDeEstaCuota.every(p => p.estado === 'pagado');
+                                const algoPagado = pagosDeEstaCuota.some(p => p.estado === 'pagado');
+                                
+                                // Calcular monto total de la cuota
+                                const montoTotal = pagosDeEstaCuota.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+                                
+                                // Calcular monto pagado de la cuota
+                                const montoPagado = pagosDeEstaCuota
+                                    .filter(p => p.estado === 'pagado')
+                                    .reduce((sum, p) => sum + parseFloat(p.monto), 0);
+                                
+                                cuotasAgrupadas.push({
+                                    numero: i,
+                                    monto: montoTotal,
+                                    monto_pagado: montoPagado,
+                                    observaciones: `Cuota ${i} de ${totalCuotas}`,
+                                    pagos_ids: pagosDeEstaCuota.map(p => p.id),
+                                    id: pagosDeEstaCuota[0].id,
+                                    estado: todoPagado ? 'pagado' : (algoPagado ? 'parcial' : 'pendiente')
+                                });
+                            }
+                        }
+                        
+                        cuotasPendientes.value[venta.id] = cuotasAgrupadas;
+                    } else {
+                        // Si no tiene cuotas definidas, mostrar todos los pagos
+                        cuotasPendientes.value[venta.id] = todosPagos;
+                    }
+                }
+            }
         }
     } catch (error) {
         console.error('Error al cargar ventas:', error);
@@ -57,35 +104,24 @@ const getEstadoBadge = (estado) => {
     return badges[estado] || 'bg-gray-100 text-gray-800';
 };
 
-// Abrir modal para ingresar monto
-const abrirModalMonto = (venta) => {
-    ventaSeleccionada.value = venta;
-    formMonto.value = {
-        monto: parseFloat(venta.saldo_pendiente),
-        email: ''
-    };
-    showMontoModal.value = true;
-};
+const abrirModalPago = (cuota, venta) => {
+    cuotaSeleccionada.value = { 
+        ...cuota, 
+        venta_id: venta.id,
+        // Si es cuota agrupada, usar el primer ID de pago
+        pago_id: cuota.pagos_ids ? cuota.pagos_ids[0] : cuota.id
 
-// Cerrar modal de monto
-const cerrarModalMonto = () => {
-    showMontoModal.value = false;
-    ventaSeleccionada.value = null;
+    };
+    console.log('Datos de cuotaSeleccionada:', cuotaSeleccionada.value);
     formMonto.value = {
-        monto: 0,
+        monto: parseFloat(cuota.monto),
         email: ''
     };
 };
 
-// Generar QR con el monto especificado
 const generarQR = async () => {
     if (!formMonto.value.monto || formMonto.value.monto <= 0) {
         alert('El monto debe ser mayor a 0');
-        return;
-    }
-
-    if (formMonto.value.monto > parseFloat(ventaSeleccionada.value.saldo_pendiente)) {
-        alert('El monto no puede ser mayor al saldo pendiente');
         return;
     }
 
@@ -93,16 +129,18 @@ const generarQR = async () => {
 
     try {
         const datos = {
-            venta_id: ventaSeleccionada.value.id,
+            venta_id: cuotaSeleccionada.value.venta_id,
             monto: parseFloat(formMonto.value.monto),
-            email: formMonto.value.email || ''
+            email: formMonto.value.email || '',
+            pago_id: cuotaSeleccionada.value.pago_id
         };
-
+        console.log(datos)
         const response = await pagosApi.generarQR(datos);
+ 
 
         if (response.success) {
             qrData.value = response.data.data;
-            showMontoModal.value = false;
+            cuotaSeleccionada.value = null;
             showQRModal.value = true;
             await cargarVentas();
         } else {
@@ -134,9 +172,7 @@ const verificarPago = async () => {
     if (!qrData.value?.transactionId) return;
 
     try {
-        // Buscar el pago por company_transaction_id
         const response = await pagosApi.consultarEstado(qrData.value.transactionId);
-        console.log(response)
         if (response.success && response.data.data.paymentStatus === 2) {
             alert('¡Pago confirmado exitosamente!');
             cerrarQRModal();
@@ -153,6 +189,7 @@ const verificarPago = async () => {
 onMounted(() => {
     cargarVentas();
 });
+
 </script>
 
 <template>
@@ -160,127 +197,131 @@ onMounted(() => {
         <Head title="Mis Ventas" />
 
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900">Mis Ventas</h1>
-            <p class="text-gray-600 mt-2">Gestiona tus pagos y revisa tu historial</p>
+            <h1 class="text-3xl font-bold text-gray-900">Mis Pagos</h1>
+            <p class="text-gray-600 mt-2">Gestiona tus cuotas pendientes</p>
         </div>
 
         <div v-if="loading" class="text-center py-12">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            <p class="mt-4 text-gray-600">Cargando ventas...</p>
+            <p class="mt-4 text-gray-600">Cargando...</p>
         </div>
 
         <div v-else-if="ventas.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
             <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p class="mt-4 text-gray-600">No tienes ventas registradas</p>
+            <p class="mt-4 text-gray-600">No tienes pagos pendientes</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="space-y-6">
             <div 
                 v-for="venta in ventas" 
                 :key="venta.id"
-                class="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+                class="bg-white rounded-xl shadow-md overflow-hidden"
             >
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
-                    <h3 class="text-white font-semibold text-lg">{{ venta.servicio_nombre }}</h3>
-                    <p class="text-indigo-100 text-sm">{{ venta.mes_correspondiente }}</p>
+                <!-- Header de la venta -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
+                    <h3 class="text-white font-semibold text-xl">{{ venta.servicio_nombre }}</h3>
+                    <p class="text-indigo-100 text-sm mt-1">{{ venta.mes_correspondiente }}</p>
+                    <div class="mt-4 grid grid-cols-3 gap-4 text-white">
+                        <div>
+                            <p class="text-indigo-100 text-xs">Total</p>
+                            <p class="text-lg font-bold">{{ formatearMoneda(venta.monto_total) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-indigo-100 text-xs">Pagado</p>
+                            <p class="text-lg font-bold">{{ formatearMoneda(venta.monto_pagado) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-indigo-100 text-xs">Pendiente</p>
+                            <p class="text-lg font-bold">{{ formatearMoneda(venta.saldo_pendiente) }}</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="p-6 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Monto Total:</span>
-                        <span class="text-xl font-bold text-gray-900">{{ formatearMoneda(venta.monto_total) }}</span>
-                    </div>
-
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Pagado:</span>
-                        <span class="text-lg font-semibold text-green-600">{{ formatearMoneda(venta.monto_pagado) }}</span>
-                    </div>
-
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Saldo Pendiente:</span>
-                        <span class="text-lg font-semibold text-red-600">{{ formatearMoneda(venta.saldo_pendiente) }}</span>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-200">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-500">Tipo:</span>
-                            <span class="text-sm font-medium text-gray-900">{{ venta.tipo_venta }}</span>
-                        </div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-500">Fecha:</span>
-                            <span class="text-sm font-medium text-gray-900">{{ formatearFecha(venta.fecha_venta) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-500">Estado:</span>
-                            <span :class="getEstadoBadge(venta.estado)" class="px-3 py-1 rounded-full text-xs font-medium">
-                                {{ venta.estado }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <button
-                        v-if="parseFloat(venta.saldo_pendiente) > 0 && venta.estado !== 'pagado'"
-                        @click="abrirModalMonto(venta)"
-                        class="w-full mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center"
-                    >
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                <!-- Lista de cuotas -->
+                <div class="p-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        Cuotas Pendientes 
+                        <span v-if="venta.cuotas" class="text-sm text-gray-500">({{ cuotasPendientes[venta.id]?.length || 0 }}/{{ venta.cuotas }})</span>
+                    </h4>
+                    
+                    <div v-if="!cuotasPendientes[venta.id] || cuotasPendientes[venta.id].length === 0" class="text-center py-8 text-gray-500">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Pagar con QR
-                    </button>
+                        <p class="mt-2">¡Todas las cuotas están pagadas!</p>
+                    </div>
+
+                    <div v-else class="space-y-3">
+                        <div 
+                            v-for="cuota in cuotasPendientes[venta.id]" 
+                            :key="cuota.numero || cuota.id"
+                            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                            <div class="flex items-center flex-1">
+                                <div class="bg-indigo-100 rounded-full p-3 mr-4">
+                                    <svg v-if="cuota.estado === 'pagado'" class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <svg v-else class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-900">{{ cuota.observaciones }}</p>
+                                    <p class="text-2xl font-bold text-indigo-600 mt-1">{{ formatearMoneda(cuota.monto) }}</p>
+                                    <p v-if="cuota.estado === 'parcial'" class="text-sm text-gray-600 mt-1">
+                                        Pagado: {{ formatearMoneda(cuota.monto_pagado) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span 
+                                    :class="{
+                                        'bg-yellow-100 text-yellow-800': cuota.estado === 'pendiente',
+                                        'bg-green-100 text-green-800': cuota.estado === 'pagado',
+                                        'bg-blue-100 text-blue-800': cuota.estado === 'parcial'
+                                    }" 
+                                    class="px-3 py-1 text-sm rounded-full font-medium"
+                                >
+                                    {{ cuota.estado === 'pagado' ? 'Pagado' : (cuota.estado === 'parcial' ? 'Parcial' : 'Pendiente') }}
+                                </span>
+                                <button
+                                    v-if="cuota.estado !== 'pagado'"
+                                    @click="abrirModalPago(cuota, venta)"
+                                    class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center"
+                                >
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                    </svg>
+                                    Pagar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Modal para Especificar Monto -->
-        <div v-if="showMontoModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <!-- Modal Pago con QR -->
+        <div v-if="cuotaSeleccionada" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-lg max-w-md w-full p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-900">Especificar Monto a Pagar</h3>
-                    <button @click="cerrarModalMonto" class="text-gray-400 hover:text-gray-600">
+                    <h3 class="text-xl font-bold text-gray-900">Pagar Cuota</h3>
+                    <button @click="cuotaSeleccionada = null" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-gray-600">Monto Total:</span>
-                        <span class="font-semibold">{{ formatearMoneda(ventaSeleccionada?.monto_total) }}</span>
-                    </div>
-                    <div class="flex justify-between mb-2">
-                        <span class="text-gray-600">Ya Pagado:</span>
-                        <span class="font-semibold text-green-600">{{ formatearMoneda(ventaSeleccionada?.monto_pagado) }}</span>
-                    </div>
-                    <div class="flex justify-between pt-2 border-t border-gray-300">
-                        <span class="text-gray-900 font-medium">Saldo Pendiente:</span>
-                        <span class="font-bold text-red-600">{{ formatearMoneda(ventaSeleccionada?.saldo_pendiente) }}</span>
-                    </div>
+                <div class="mb-6 p-4 bg-indigo-50 rounded-lg">
+                    <p class="text-sm font-medium text-indigo-900">{{ cuotaSeleccionada.observaciones }}</p>
+                    <p class="text-3xl font-bold text-indigo-600 mt-2">{{ formatearMoneda(cuotaSeleccionada.monto) }}</p>
                 </div>
 
                 <form @submit.prevent="generarQR" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Monto a Pagar (Bs.)
-                        </label>
-                        <input
-                            v-model="formMonto.monto"
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            :max="ventaSeleccionada?.saldo_pendiente"
-                            required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg font-semibold"
-                            placeholder="0.00"
-                        />
-                        <p class="text-sm text-gray-500 mt-1">
-                            Máximo: {{ formatearMoneda(ventaSeleccionada?.saldo_pendiente) }}
-                        </p>
-                    </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Email (Opcional)
@@ -296,7 +337,7 @@ onMounted(() => {
                     <div class="flex gap-3 pt-4">
                         <button
                             type="button"
-                            @click="cerrarModalMonto"
+                            @click="cuotaSeleccionada = null"
                             class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                         >
                             Cancelar
@@ -313,7 +354,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Modal QR (sin cambios, el mismo que tenías antes) -->
+        <!-- Modal QR -->
         <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-lg max-w-md w-full p-6">
                 <div class="flex justify-between items-center mb-4">

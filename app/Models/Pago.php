@@ -68,6 +68,7 @@ class Pago
 
     public static function generarQR(array $datos)
     {
+
         DB::beginTransaction();
         try {
             $pagoFacilService = new PagoFacilService();
@@ -89,28 +90,27 @@ class Pago
                     'servicio.nombre as servicio_nombre'
                 )
                 ->first();
-
+    
             if (!$venta) {
                 throw new \Exception('Venta no encontrada');
             }
-
+    
             // Generar código único para la transacción
             $companyTransactionId = self::generarCodigoTransaccion();
-            
-
+    
             // Preparar datos para PagoFácil
             $qrData = [
-                'paymentMethod' => 4, // Siempre 4
+                'paymentMethod' => 4,
                 'clientName' => $venta->alumno_nombre . ' ' . $venta->alumno_apellido,
-                'documentType' => 1, // Siempre 1 (CI)
+                'documentType' => 1,
                 'documentId' => $venta->alumno_ci,
                 'phoneNumber' => $venta->alumno_telefono ?? '',
                 'email' => $datos['email'] ?? '',
                 'paymentNumber' => $companyTransactionId,
                 'amount' => floatval($datos['monto']),
-                'currency' => 2, // Siempre 2 (BOB)
+                'currency' => 2,
                 'clientCode' => $venta->alumno_codigo,
-                'callbackUrl' => env('URLCALLBACK'),
+                'callbackUrl' => 'https://b606be7ab414.ngrok-free.app/api/v1/pago/callback',
                 'orderDetail' => [
                     [
                         'serial' => 1,
@@ -122,31 +122,45 @@ class Pago
                     ]
                 ]
             ];
-
-            // Generar QR en PagoFácil
+    
+          
             $result = $pagoFacilService->generateQR($qrData);
-
+    
             if (!$result['success']) {
                 throw new \Exception($result['message']);
             }
-
-            // Crear registro de pago
-            $pagoId = DB::table('pago')->insertGetId([
-                'venta_id' => $datos['venta_id'],
-                'monto' => $datos['monto'],
-                'fecha_pago' => now(),
-                'metodo_pago' => 'QR PagoFácil',
-                'estado' => 'pendiente',
-                'observaciones' => $datos['observaciones'] ?? null,
-                'registrado_por' => $datos['registrado_por'] ?? null,
-                'pagofacil_transaction_id' => $result['data']['transactionId'], 
-                'company_transaction_id' => $companyTransactionId, 
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
+    
+           
+            if (isset($datos['pago_id']) && $datos['pago_id']) {
+                DB::table('pago')
+                    ->where('id', $datos['pago_id'])
+                    ->update([
+                        'metodo_pago' => 'QR PagoFácil',
+                        'pagofacil_transaction_id' => $result['data']['transactionId'], 
+                        'company_transaction_id' => $companyTransactionId,
+                        'updated_at' => now(),
+                    ]);
+                
+                $pagoId = $datos['pago_id'];
+            } else {
+               
+                $pagoId = DB::table('pago')->insertGetId([
+                    'venta_id' => $datos['venta_id'],
+                    'monto' => $datos['monto'],
+                    'fecha_pago' => now(),
+                    'metodo_pago' => 'QR PagoFácil',
+                    'estado' => 'pendiente',
+                    'observaciones' => $datos['observaciones'] ?? null,
+                    'registrado_por' => $datos['registrado_por'] ?? null,
+                    'pagofacil_transaction_id' => $result['data']['transactionId'], 
+                    'company_transaction_id' => $companyTransactionId, 
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+    
             DB::commit();
-
+    
             return [
                 'success' => true,
                 'data' => array_merge(
@@ -154,7 +168,7 @@ class Pago
                     $result['data']
                 )
             ];
-
+    
         } catch (\Exception $e) {
             DB::rollBack();
             return [
@@ -180,6 +194,7 @@ class Pago
                 ->where('id', $pago->id)
                 ->update([
                     'metodo_pago' => 'QR PagoFácil - Completado',
+                    'estado' => 'pagado',
                     'updated_at' => now()
                 ]);
 
