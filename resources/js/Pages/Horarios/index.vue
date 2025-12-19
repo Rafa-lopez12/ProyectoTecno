@@ -4,12 +4,15 @@ import { Head } from '@inertiajs/vue3';
 import AppLayout from '../../Layout/AppLayout.vue';
 import { useApi } from '../../composables/useApi';
 import AsignarHorarioModal from './components/AsignarHorarioModal.vue';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const { horarios, tutores } = useApi();
 
 const listaTutores = ref([]);
 const loading = ref(false);
 const showAsignarModal = ref(false);
+const generandoPdf = ref(false);
 
 const diasSemana = {
     'lunes': 'Lunes',
@@ -34,16 +37,13 @@ const coloresDia = {
 const cargarDatos = async () => {
     loading.value = true;
     try {
-        // Obtener todos los tutores
         const resultTutores = await tutores.getAll();
         
         if (resultTutores.success) {
-            // Para cada tutor, obtener sus horarios
             const tutoresConHorarios = await Promise.all(
                 resultTutores.data.data.map(async (tutor) => {
                     const resultHorarios = await horarios.obtenerHorariosDeTutor(tutor.id);
                     
-                    // Agrupar horarios por día
                     const horariosPorDia = {};
                     if (resultHorarios.success && resultHorarios.data.data) {
                         resultHorarios.data.data.forEach(horario => {
@@ -90,8 +90,147 @@ const eliminarHorario = async (tutorId, horarioId) => {
     }
 };
 
+const generarPdfDisponibles = async () => {
+    generandoPdf.value = true;
+    try {
+        // Obtener horarios disponibles del backend
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/v1/horarios-disponibles', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al obtener horarios disponibles');
+        }
+
+        const data = await response.json();
+        const horariosDisponibles = data.data;
+
+        if (!horariosDisponibles || horariosDisponibles.length === 0) {
+            alert('No hay horarios disponibles en este momento');
+            return;
+        }
+
+        // Crear PDF con jsPDF
+        const doc = new jsPDF();
+        
+        // Título
+        doc.setFontSize(20);
+        doc.setTextColor(67, 56, 202); // Indigo
+        doc.text('HORARIOS DISPONIBLES', 105, 20, { align: 'center' });
+        
+        // Fecha de generación
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const fechaHora = new Date().toLocaleString('es-BO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        doc.text(`Generado el ${fechaHora}`, 105, 28, { align: 'center' });
+        
+        // Agrupar horarios por día
+        const diasOrden = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+        const horariosPorDia = {};
+        
+        horariosDisponibles.forEach(horario => {
+            const dia = horario.dia_semana.toLowerCase();
+            if (!horariosPorDia[dia]) {
+                horariosPorDia[dia] = [];
+            }
+            horariosPorDia[dia].push(horario);
+        });
+        
+        let yPos = 40;
+        
+        // Generar tabla para cada día
+        diasOrden.forEach(dia => {
+            if (!horariosPorDia[dia]) return;
+            
+            // Verificar si necesitamos nueva página
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            // Nombre del día
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.setFont(undefined, 'bold');
+            doc.text(diasSemana[dia], 14, yPos);
+            yPos += 8;
+            
+            // Preparar datos para la tabla
+            const tableData = horariosPorDia[dia]
+                .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
+                .map(h => [
+                    h.hora_inicio,
+                    h.hora_fin,
+                    'Disponible'
+                ]);
+            
+            // Crear tabla
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Hora Inicio', 'Hora Fin', 'Estado']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { 
+                    fillColor: [67, 56, 202],
+                    textColor: 255,
+                    fontSize: 11,
+                    fontStyle: 'bold'
+                },
+                bodyStyles: {
+                    fontSize: 10
+                },
+                columnStyles: {
+                    0: { cellWidth: 60, halign: 'center' },
+                    1: { cellWidth: 60, halign: 'center' },
+                    2: { cellWidth: 60, halign: 'center' }
+                },
+                alternateRowStyles: {
+                    fillColor: [249, 250, 251]
+                },
+                margin: { left: 14 }
+            });
+            
+            yPos = doc.lastAutoTable.finalY + 12;
+        });
+        
+        // Nota al pie
+        if (yPos > 260) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.setFont(undefined, 'bold');
+        doc.text('Nota: ', 14, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text('Los horarios mostrados son los que actualmente están disponibles para inscripción.', 28, yPos);
+        doc.text('Para inscribirse, por favor contacte con la administración.', 14, yPos + 5);
+        
+        // Guardar PDF
+        doc.save(`Horarios_Disponibles_${new Date().toISOString().split('T')[0]}.pdf`);
+        
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar PDF: ' + error.message);
+    } finally {
+        generandoPdf.value = false;
+    }
+};
+
 const formatearHora = (hora) => {
-    return hora.substring(0, 5); // HH:MM
+    return hora.substring(0, 5);
 };
 
 onMounted(() => {
@@ -113,15 +252,28 @@ onMounted(() => {
                             Gestiona los horarios asignados a cada tutor
                         </p>
                     </div>
-                    <button
-                        @click="showAsignarModal = true"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring focus:ring-indigo-300 disabled:opacity-25 transition"
-                    >
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Nueva Asignación
-                    </button>
+                    <div class="flex gap-3">
+                        <button
+                            @click="generarPdfDisponibles"
+                            :disabled="generandoPdf"
+                            class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:border-green-900 focus:ring focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                            <svg v-if="!generandoPdf" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <div v-else class="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            {{ generandoPdf ? 'Generando...' : 'PDF Disponibles' }}
+                        </button>
+                        <button
+                            @click="showAsignarModal = true"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring focus:ring-indigo-300 disabled:opacity-25 transition"
+                        >
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Nueva Asignación
+                        </button>
+                    </div>
                 </div>
             </div>
 

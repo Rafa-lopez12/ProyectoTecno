@@ -231,4 +231,21 @@ class HorarioController extends Controller
             ], 500);
         }
     }
+
+    public function horariosDisponibles()
+    {
+        try {
+            $horarios = Horario::obtenerHorariosDisponibles();
+
+            return response()->json([
+                'data' => $horarios
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener horarios disponibles',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

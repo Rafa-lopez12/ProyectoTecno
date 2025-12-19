@@ -275,4 +275,67 @@ class Horario
             'updated_at' => now()
         ]);
     }
+
+    public static function obtenerHorariosDisponibles()
+    {
+        $horarios = DB::table('horario')
+            ->where('estado', 'activo')
+            ->orderBy('dia_semana')
+            ->orderBy('hora_inicio')
+            ->get();
+
+        $horariosDisponibles = [];
+        $horariosAgregados = []; // Para evitar duplicados
+        
+        foreach ($horarios as $horario) {
+            // Obtener tutores con este horario
+            $tutoresConHorario = DB::table('tutor_horario')
+                ->where('horario_id', $horario->id)
+                ->pluck('tutor_id')
+                ->toArray();
+            
+            if (empty($tutoresConHorario)) {
+                // No hay tutores asignados, este horario no está disponible aún
+                continue;
+            }
+            
+            // Verificar si al menos un tutor está libre en este horario
+            $hayTutorDisponible = false;
+            
+            foreach ($tutoresConHorario as $tutorId) {
+                // Buscar inscripciones activas de este tutor en este horario específico
+                $tieneInscripcion = DB::table('inscripcion')
+                    ->where('tutor_id', $tutorId)
+                    ->where('estado', 'activo')
+                    ->whereRaw("horarios::jsonb @> ?", [json_encode([
+                        [
+                            'dia' => $horario->dia_semana,
+                            'hora_inicio' => substr($horario->hora_inicio, 0, 5),
+                            'hora_fin' => substr($horario->hora_fin, 0, 5)
+                        ]
+                    ])])
+                    ->exists();
+                
+                if (!$tieneInscripcion) {
+                    $hayTutorDisponible = true;
+                    break;
+                }
+            }
+            
+            // Si hay al menos un tutor disponible y no hemos agregado este horario
+            $horarioKey = $horario->dia_semana . '_' . $horario->hora_inicio . '_' . $horario->hora_fin;
+            
+            if ($hayTutorDisponible && !isset($horariosAgregados[$horarioKey])) {
+                $horariosDisponibles[] = [
+                    'id' => $horario->id,
+                    'dia_semana' => $horario->dia_semana,
+                    'hora_inicio' => substr($horario->hora_inicio, 0, 5),
+                    'hora_fin' => substr($horario->hora_fin, 0, 5)
+                ];
+                $horariosAgregados[$horarioKey] = true;
+            }
+        }
+        
+        return $horariosDisponibles;
+    }
 }
