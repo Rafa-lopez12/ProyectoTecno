@@ -167,7 +167,10 @@ export function useApi() {
             request('GET', `/v1/horario/${horarioId}/tutores`),
         
         obtenerHorariosDeTutor: tutorId =>
-            request('GET', `/v1/tutores/${tutorId}/horario`)
+            request('GET', `/v1/tutores/${tutorId}/horario`),
+
+        horariosDisponibles: () =>
+            request('GET', '/v1/horarios-disponibles')
     };
 
     // ============================================

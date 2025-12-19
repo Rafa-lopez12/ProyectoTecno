@@ -93,22 +93,14 @@ const eliminarHorario = async (tutorId, horarioId) => {
 const generarPdfDisponibles = async () => {
     generandoPdf.value = true;
     try {
-        // Obtener horarios disponibles del backend
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/v1/horarios-disponibles', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
+        // Obtener horarios disponibles usando useApi
+        const result = await horarios.horariosDisponibles();
 
-        if (!response.ok) {
-            throw new Error('Error al obtener horarios disponibles');
+        if (!result.success) {
+            throw new Error(result.error || 'Error al obtener horarios disponibles');
         }
 
-        const data = await response.json();
-        const horariosDisponibles = data.data;
+        const horariosDisponibles = result.data.data;
 
         if (!horariosDisponibles || horariosDisponibles.length === 0) {
             alert('No hay horarios disponibles en este momento');

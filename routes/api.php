@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('horario/{id}/desasignar-tutor', [HorarioController::class, 'desasignarTutor']);
         Route::get('horario/{id}/tutores', [HorarioController::class, 'tutoresDeHorario']);
         Route::get('tutores/{tutorId}/horario', [HorarioController::class, 'horariosDeTutor']);
+        Route::get('horarios-disponibles', [HorarioController::class, 'horariosDisponibles']);
         
         // Inscripciones
         Route::apiResource('inscripcion', InscripcionController::class);
