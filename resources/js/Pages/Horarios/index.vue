@@ -127,6 +127,59 @@ const generarPdfDisponibles = async () => {
         });
         doc.text(`Generado el ${fechaHora}`, 105, 28, { align: 'center' });
         
+        // Extraer tutores únicos y asignar colores
+        const tutoresUnicos = [...new Set(horariosDisponibles.map(h => h.tutor_id))];
+        const coloresPastel = [
+            [255, 200, 200], // Rosa pastel
+            [200, 230, 255], // Azul pastel
+            [200, 255, 200], // Verde pastel
+            [255, 240, 200], // Amarillo pastel
+            [230, 200, 255], // Morado pastel
+            [255, 220, 180], // Naranja pastel
+            [200, 255, 255], // Cyan pastel
+            [255, 200, 255], // Magenta pastel
+            [220, 255, 220], // Verde claro pastel
+            [255, 230, 200], // Durazno pastel
+        ];
+        
+        const tutorColores = {};
+        tutoresUnicos.forEach((tutorId, index) => {
+            tutorColores[tutorId] = coloresPastel[index % coloresPastel.length];
+        });
+        
+        // Crear leyenda de tutores
+        let yPos = 36;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.setFont(undefined, 'bold');
+        doc.text('Leyenda de Tutores:', 14, yPos);
+        yPos += 6;
+        
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        
+        tutoresUnicos.forEach((tutorId, index) => {
+            const tutor = horariosDisponibles.find(h => h.tutor_id === tutorId);
+            const color = tutorColores[tutorId];
+            
+            // Dibujar cuadrado de color
+            doc.setFillColor(color[0], color[1], color[2]);
+            doc.rect(14, yPos - 3, 4, 4, 'F');
+            
+            // Nombre del tutor
+            doc.setTextColor(0);
+            doc.text(tutor.tutor_nombre, 20, yPos);
+            
+            yPos += 5;
+            
+            // Si hay muchos tutores, hacer dos columnas
+            if (index === Math.floor(tutoresUnicos.length / 2) && tutoresUnicos.length > 6) {
+                yPos = 42;
+            }
+        });
+        
+        yPos += 8;
+        
         // Agrupar horarios por día
         const diasOrden = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
         const horariosPorDia = {};
@@ -139,14 +192,12 @@ const generarPdfDisponibles = async () => {
             horariosPorDia[dia].push(horario);
         });
         
-        let yPos = 40;
-        
         // Generar tabla para cada día
         diasOrden.forEach(dia => {
             if (!horariosPorDia[dia]) return;
             
             // Verificar si necesitamos nueva página
-            if (yPos > 250) {
+            if (yPos > 240) {
                 doc.addPage();
                 yPos = 20;
             }
@@ -158,42 +209,54 @@ const generarPdfDisponibles = async () => {
             doc.text(diasSemana[dia], 14, yPos);
             yPos += 8;
             
-            // Preparar datos para la tabla
+            // Preparar datos para la tabla con información del tutor
             const tableData = horariosPorDia[dia]
                 .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
                 .map(h => [
                     h.hora_inicio,
                     h.hora_fin,
-                    'Disponible'
+                    h.tutor_nombre
                 ]);
             
             // Crear tabla
             autoTable(doc, {
                 startY: yPos,
-                head: [['Hora Inicio', 'Hora Fin', 'Estado']],
+                head: [['Hora Inicio', 'Hora Fin', 'Tutor Disponible']],
                 body: tableData,
-                theme: 'striped',
+                theme: 'grid',
                 headStyles: { 
                     fillColor: [67, 56, 202],
                     textColor: 255,
-                    fontSize: 11,
-                    fontStyle: 'bold'
+                    fontSize: 10,
+                    fontStyle: 'bold',
+                    halign: 'center'
                 },
                 bodyStyles: {
-                    fontSize: 10
+                    fontSize: 9,
+                    halign: 'center'
                 },
                 columnStyles: {
-                    0: { cellWidth: 60, halign: 'center' },
-                    1: { cellWidth: 60, halign: 'center' },
-                    2: { cellWidth: 60, halign: 'center' }
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 35 },
+                    2: { cellWidth: 110 }
                 },
-                alternateRowStyles: {
-                    fillColor: [249, 250, 251]
+                didParseCell: function(data) {
+                    // Colorear las filas según el tutor
+                    if (data.section === 'body') {
+                        const rowIndex = data.row.index;
+                        const horario = horariosPorDia[dia]
+                            .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))[rowIndex];
+                        
+                        if (horario) {
+                            const color = tutorColores[horario.tutor_id];
+                            data.cell.styles.fillColor = color;
+                        }
+                    }
                 },
-                margin: { left: 14 }
+                margin: { left: 14, right: 14 }
             });
             
-            yPos = doc.lastAutoTable.finalY + 12;
+            yPos = doc.lastAutoTable.finalY + 10;
         });
         
         // Nota al pie
@@ -207,8 +270,8 @@ const generarPdfDisponibles = async () => {
         doc.setFont(undefined, 'bold');
         doc.text('Nota: ', 14, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text('Los horarios mostrados son los que actualmente están disponibles para inscripción.', 28, yPos);
-        doc.text('Para inscribirse, por favor contacte con la administración.', 14, yPos + 5);
+        doc.text('Los horarios del mismo color pertenecen al mismo tutor.', 28, yPos);
+        doc.text('Selecciona todos los horarios de un mismo color para garantizar el mismo tutor en todas las clases.', 14, yPos + 5);
         
         // Guardar PDF
         doc.save(`Horarios_Disponibles_${new Date().toISOString().split('T')[0]}.pdf`);
